@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -35,6 +36,13 @@ export default function TabLayout() {
         options={{
           title: 'Login',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="PubForm"
+        options={{
+          title: 'Publicar',
+          tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={28} color={color} />,
         }}
       />
     </Tabs>
