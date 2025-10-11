@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { supabase } from '@/constants/supabaseClient';
+// import { supabase } from '@/constants/supabaseClient'; // Comentado temporalmente
 
 
 const LoginScreen = () => {
@@ -27,15 +27,16 @@ const LoginScreen = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password,
-      });
-
-      if (error) throw error;
-
-      // Navegación exitosa se manejará automáticamente por el listener de auth
-      console.log('Login exitoso:', data);
+      // TODO: Implementar autenticación con Supabase
+      // const { data, error } = await supabase.auth.signInWithPassword({
+      //   email: email.trim(),
+      //   password: password,
+      // });
+      // if (error) throw error;
+      
+      // Simulación de login exitoso por ahora
+      Alert.alert('Login', 'Login simulado exitoso');
+      console.log('Login exitoso (simulado)');
     } catch (error: any) {
       Alert.alert('Error de inicio de sesión', error.message);
     } finally {

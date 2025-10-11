@@ -1,4 +1,5 @@
 // app/(tabs)/index.tsx
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
@@ -11,26 +12,32 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-import React from 'react';
 
-type Item = { id: string; title: string; subtitle: string };
+// Definición de tipos
+type Item = {
+  id: string;
+  title: string;
+  subtitle: string;
+};
 
+// Constantes de colores
+const HEADER_BG = '#e8f0fe';
+const PLACEHOLDER = '#c2d4e8';
+const CARD_FOOTER = '#f9fbfd';
+
+// Datos de ejemplo
 const MOCK: Item[] = [
-  { id: '1', title: 'Title', subtitle: 'Subtitle' },
-  { id: '2', title: 'Title', subtitle: 'Subtitle' },
-  { id: '3', title: 'Title', subtitle: 'Subtitle' },
-  { id: '4', title: 'Title', subtitle: 'Subtitle' },
-  { id: '5', title: 'Title', subtitle: 'Subtitle' },
-  { id: '6', title: 'Title', subtitle: 'Subtitle' },
+  { id: '1', title: 'Producto 1', subtitle: 'Descripción del producto 1' },
+  { id: '2', title: 'Producto 2', subtitle: 'Descripción del producto 2' },
+  { id: '3', title: 'Producto 3', subtitle: 'Descripción del producto 3' },
+  { id: '4', title: 'Producto 4', subtitle: 'Descripción del producto 4' },
+  { id: '5', title: 'Producto 5', subtitle: 'Descripción del producto 5' },
+  { id: '6', title: 'Producto 6', subtitle: 'Descripción del producto 6' },
 ];
-
-const HEADER_BG = '#E9DEEF'; // lavanda claro
-const PLACEHOLDER = '#cdbfd5';
-const CARD_FOOTER = '#F7EFF9';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -60,12 +67,19 @@ export default function HomeScreen() {
 
             {/* Hero + barra lateral */}
             <View style={styles.heroRow}>
-              <ThemedView style={styles.heroCard}>
-                <ThemedText type="title" style={{ marginBottom: 6 }}>AAAA</ThemedText>
-                <ThemedText>
-                  AAAAAAAAAAAAAAAAAAAAAAAA AAAAAAAAAAAAAAAA A
-                </ThemedText>
-              </ThemedView>
+              <TouchableOpacity 
+                style={styles.heroCard} 
+                onPress={() => router.push('/MisProductos')}
+              >
+                <ThemedView style={styles.heroCardContent}>
+                  <ThemedText type="title" style={{ marginBottom: 6 }}>
+                    Mis Productos 📦
+                  </ThemedText>
+                  <ThemedText>
+                    Ver y administrar tus productos publicados
+                  </ThemedText>
+                </ThemedView>
+              </TouchableOpacity>
 
               <ThemedView style={styles.heroSide}>
                 <View style={styles.sideIcon} />
@@ -141,8 +155,13 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 14,
     backgroundColor: HEADER_BG,
+  },
+  heroCardContent: {
+    flex: 1,
     padding: 16,
     justifyContent: 'center',
+    backgroundColor: HEADER_BG,
+    borderRadius: 14,
   },
   heroSide: {
     width: 64,
