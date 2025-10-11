@@ -11,6 +11,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Link } from 'expo-router';
+import React from 'react';
 
 type Item = { id: string; title: string; subtitle: string };
 
