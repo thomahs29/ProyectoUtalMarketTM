@@ -1,16 +1,18 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/utils/supabase';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { supabase } from '@/utils/supabase';
 
 
 const LoginScreen = () => {
@@ -18,6 +20,15 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  // Si el usuario ya está autenticado, redirigir automáticamente
+  React.useEffect(() => {
+    if (user) {
+      router.replace('/(tabs)');
+    }
+  }, [user, router]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,8 +45,11 @@ const LoginScreen = () => {
 
       if (error) throw error;
 
-      // Navegación exitosa se manejará automáticamente por el listener de auth
-      console.log('Login exitoso:', data);
+      // La navegación se manejará automáticamente por el AuthRedirect
+      console.log('Login exitoso:', data.user?.email);
+      
+      // Opcional: mostrar mensaje de éxito
+      Alert.alert('Éxito', 'Has iniciado sesión correctamente');
     } catch (error: any) {
       Alert.alert('Error de inicio de sesión', error.message);
     } finally {

@@ -1,14 +1,26 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Alert, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'expo-router';
 import React from 'react';
 
 export default function HomeScreen() {
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      Alert.alert('Éxito', 'Has cerrado sesión correctamente');
+    } catch (error: any) {
+      Alert.alert('Error', 'No se pudo cerrar la sesión: ' + error.message);
+    }
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -19,14 +31,27 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title">¡Bienvenido a UtalcaMarket!</ThemedText>
         <HelloWave />
       </ThemedView>
+      
+      {user && (
+        <ThemedView style={styles.stepContainer}>
+          <ThemedText type="subtitle">Usuario conectado</ThemedText>
+          <ThemedText>
+            Email: <ThemedText type="defaultSemiBold">{user.email}</ThemedText>
+          </ThemedText>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <ThemedText style={styles.logoutButtonText}>Cerrar Sesión</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+      )}
+      
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+        <ThemedText type="subtitle">Paso 1: Explora el mercado</ThemedText>
         <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
+          Edita <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> para ver cambios.
+          Presiona{' '}
           <ThemedText type="defaultSemiBold">
             {Platform.select({
               ios: 'cmd + d',
@@ -34,7 +59,7 @@ export default function HomeScreen() {
               web: 'F12',
             })}
           </ThemedText>{' '}
-          to open developer tools.
+          para abrir herramientas de desarrollador.
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
@@ -95,5 +120,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  logoutButton: {
+    backgroundColor: '#ff4444',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
 });
