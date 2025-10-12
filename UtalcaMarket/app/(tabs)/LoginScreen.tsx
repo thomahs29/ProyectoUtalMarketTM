@@ -10,7 +10,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { supabase } from '@/constants/supabaseClient';
+import { supabase } from '@/utils/supabase';
 
 
 const LoginScreen = () => {
