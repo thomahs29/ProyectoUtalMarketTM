@@ -3,22 +3,47 @@ import { PublicationService } from '@/services/publicationService';
 import { CATEGORIES, Publication } from '@/types/publication';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
 interface PublicationItemProps {
   publication: Publication;
+  showActions?: boolean;
+  onEdit?: (publication: Publication) => void;
+  onDelete?: (publication: Publication) => void;
 }
 
-const PublicationItem: React.FC<PublicationItemProps> = ({ publication }) => {
+const PublicationItem: React.FC<PublicationItemProps> = ({ 
+  publication, 
+  showActions = false, 
+  onEdit, 
+  onDelete 
+}) => {
+  const [showMenu, setShowMenu] = useState(false);
   const categoryLabel = CATEGORIES.find(cat => cat.value === publication.category)?.label || 'Otros';
+  
+  const handleMenuToggle = () => {
+    setShowMenu(!showMenu);
+  };
+
+  const handleEdit = () => {
+    setShowMenu(false);
+    onEdit?.(publication);
+  };
+
+  const handleDelete = () => {
+    setShowMenu(false);
+    onDelete?.(publication);
+  };
   
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CL', {
@@ -39,7 +64,17 @@ const PublicationItem: React.FC<PublicationItemProps> = ({ publication }) => {
     <View style={styles.publicationCard}>
       <View style={styles.publicationHeader}>
         <Text style={styles.publicationTitle}>{publication.title}</Text>
-        <Text style={styles.publicationPrice}>{formatPrice(publication.price)}</Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.publicationPrice}>{formatPrice(publication.price)}</Text>
+          {showActions && (
+            <TouchableOpacity 
+              style={styles.menuButton}
+              onPress={handleMenuToggle}
+            >
+              <Text style={styles.menuIcon}>⋮</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       
       <Text style={styles.publicationDescription} numberOfLines={3}>
@@ -52,6 +87,42 @@ const PublicationItem: React.FC<PublicationItemProps> = ({ publication }) => {
         </View>
         <Text style={styles.publicationDate}>{formatDate(publication.created_at)}</Text>
       </View>
+      
+      {/* Menú contextual */}
+      {showActions && showMenu && (
+        <Modal
+          transparent={true}
+          visible={showMenu}
+          animationType="fade"
+          onRequestClose={() => setShowMenu(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setShowMenu(false)}>
+            <View style={styles.menuOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.menuContainer}>
+                  <TouchableOpacity 
+                    style={styles.menuItem}
+                    onPress={handleEdit}
+                  >
+                    <Text style={styles.menuItemIcon}>✏️</Text>
+                    <Text style={styles.menuItemText}>Editar</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.menuSeparator} />
+                  
+                  <TouchableOpacity 
+                    style={styles.menuItem}
+                    onPress={handleDelete}
+                  >
+                    <Text style={styles.menuItemIcon}>🗑️</Text>
+                    <Text style={[styles.menuItemText, styles.deleteText]}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -59,9 +130,14 @@ const PublicationItem: React.FC<PublicationItemProps> = ({ publication }) => {
 interface PublicationsListProps {
   userOnly?: boolean;
   onRefresh?: () => void;
+  onEdit?: (publication: Publication) => void;
 }
 
-const PublicationsList: React.FC<PublicationsListProps> = ({ userOnly = false, onRefresh }) => {
+const PublicationsList: React.FC<PublicationsListProps> = ({ 
+  userOnly = false, 
+  onRefresh,
+  onEdit 
+}) => {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,6 +166,37 @@ const PublicationsList: React.FC<PublicationsListProps> = ({ userOnly = false, o
     setRefreshing(true);
     await loadPublications();
     onRefresh?.();
+  };
+
+  const handleEdit = (publication: Publication) => {
+    onEdit?.(publication);
+  };
+
+  const handleDelete = async (publication: Publication) => {
+    Alert.alert(
+      'Eliminar publicación',
+      `¿Estás seguro de que quieres eliminar "${publication.title}"?`,
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await PublicationService.deletePublication(publication.id);
+              Alert.alert('Éxito', 'Publicación eliminada correctamente');
+              await loadPublications(); // Recargar la lista
+              onRefresh?.();
+            } catch (error: any) {
+              Alert.alert('Error', 'No se pudo eliminar la publicación: ' + error.message);
+            }
+          },
+        },
+      ]
+    );
   };
 
   useEffect(() => {
@@ -130,7 +237,14 @@ const PublicationsList: React.FC<PublicationsListProps> = ({ userOnly = false, o
     <FlatList
       data={publications}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => <PublicationItem publication={item} />}
+      renderItem={({ item }) => (
+        <PublicationItem 
+          publication={item} 
+          showActions={userOnly}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      )}
       contentContainerStyle={styles.listContainer}
       refreshControl={
         <RefreshControl
@@ -168,6 +282,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   publicationTitle: {
     flex: 1,
     fontSize: 18,
@@ -179,6 +298,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#059669',
+  },
+  menuButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
+  menuIcon: {
+    fontSize: 20,
+    color: '#6B7280',
+    fontWeight: 'bold',
   },
   publicationDescription: {
     fontSize: 14,
@@ -205,6 +333,49 @@ const styles = StyleSheet.create({
   publicationDate: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  // Estilos del menú contextual
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  menuItemIcon: {
+    fontSize: 16,
+    marginRight: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  menuSeparator: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 16,
+  },
+  deleteText: {
+    color: '#EF4444',
   },
   loadingContainer: {
     flex: 1,

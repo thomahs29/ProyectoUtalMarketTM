@@ -1,7 +1,8 @@
 import CreatePublicationForm from '@/components/CreatePublicationForm';
-import CustomHeader from '@/components/CustomHeader';
+import EditPublicationForm from '@/components/EditPublicationForm';
 import PublicationsList from '@/components/PublicationsList';
 import { useAuth } from '@/contexts/AuthContext';
+import { Publication } from '@/types/publication';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -12,27 +13,28 @@ import {
   View,
 } from 'react-native';
 
-interface PublicationsScreenProps {
-  showCreateModal?: boolean;
-  setShowCreateModal?: (show: boolean) => void;
-}
-
-export default function PublicationsScreen({ 
-  showCreateModal: externalShowCreateModal, 
-  setShowCreateModal: externalSetShowCreateModal 
-}: PublicationsScreenProps) {
+export default function PublicationsScreen() {
   const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
-  const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [publicationToEdit, setPublicationToEdit] = useState<Publication | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
-
-  // Use external modal state if provided, otherwise use internal state
-  const showCreateModal = externalShowCreateModal !== undefined ? externalShowCreateModal : internalShowCreateModal;
-  const setShowCreateModal = externalSetShowCreateModal || setInternalShowCreateModal;
 
   const handlePublicationCreated = () => {
     setShowCreateModal(false);
     setRefreshKey(prev => prev + 1); // Forzar actualización de la lista
+  };
+
+  const handlePublicationUpdated = () => {
+    setShowEditModal(false);
+    setPublicationToEdit(null);
+    setRefreshKey(prev => prev + 1); // Forzar actualización de la lista
+  };
+
+  const handleEditPublication = (publication: Publication) => {
+    setPublicationToEdit(publication);
+    setShowEditModal(true);
   };
 
   const handleRefresh = () => {
@@ -52,7 +54,15 @@ export default function PublicationsScreen({
 
   return (
     <SafeAreaView style={styles.container}>
-      <CustomHeader />
+      <View style={styles.header}>
+        <Text style={styles.title}>UtalcaMarket</Text>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => setShowCreateModal(true)}
+        >
+          <Text style={styles.createButtonText}>+ Crear</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -78,6 +88,7 @@ export default function PublicationsScreen({
           key={`${activeTab}-${refreshKey}`}
           userOnly={activeTab === 'mine'}
           onRefresh={handleRefresh}
+          onEdit={handleEditPublication}
         />
       </View>
 
@@ -96,6 +107,33 @@ export default function PublicationsScreen({
             </TouchableOpacity>
           </View>
           <CreatePublicationForm onPublicationCreated={handlePublicationCreated} />
+        </SafeAreaView>
+      </Modal>
+
+      {/* Modal de Edición */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                setShowEditModal(false);
+                setPublicationToEdit(null);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+          {publicationToEdit && (
+            <EditPublicationForm 
+              publication={publicationToEdit}
+              onPublicationUpdated={handlePublicationUpdated}
+            />
+          )}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -121,6 +159,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1F2937',
+  },
+  createButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
   },
   tabContainer: {
     flexDirection: 'row',

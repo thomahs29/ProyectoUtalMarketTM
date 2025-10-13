@@ -15,11 +15,11 @@ const AuthRedirect: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     const isInLoginScreen = currentPath.includes('LoginScreen');
 
     if (user && isInLoginScreen) {
-      // Usuario autenticado pero en login - redirigir a tabs
-      router.replace('/(tabs)');
+      // Usuario autenticado pero en login - redirigir a publicaciones
+      router.replace('/publications');
     } else if (!user && !isInLoginScreen && segments.length > 0) {
       // Usuario no autenticado pero no en login - redirigir a login
-      router.replace('/(tabs)/LoginScreen');
+      router.replace('/LoginScreen');
     }
   }, [user, loading, segments, router]);
 
