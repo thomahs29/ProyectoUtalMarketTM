@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Alert, Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -48,18 +48,11 @@ export default function HomeScreen() {
       )}
       
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Paso 1: Explora el mercado</ThemedText>
+        <ThemedText type="subtitle">Publicaciones Recientes</ThemedText>
         <ThemedText>
-          Edita <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> para ver cambios.
-          Presiona{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          para abrir herramientas de desarrollador.
+          Ve las últimas publicaciones en la pestaña{' '}
+          <ThemedText type="defaultSemiBold">Publicaciones</ThemedText>. 
+          Aquí podrás crear, ver y gestionar todas tus publicaciones.
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>

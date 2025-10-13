@@ -29,6 +29,14 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="publications"
+          options={{
+            title: 'Publicaciones',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="doc.text.fill" color={color} />,
+            tabBarStyle: user ? undefined : { display: 'none' }, // Ocultar si no está autenticado
+          }}
+        />
+        <Tabs.Screen
           name="explore"
           options={{
             title: 'Explore',
