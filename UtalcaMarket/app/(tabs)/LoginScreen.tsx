@@ -1,16 +1,18 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/utils/supabase';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-// import { supabase } from '@/constants/supabaseClient'; // Comentado temporalmente
 
 
 const LoginScreen = () => {
@@ -18,6 +20,15 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  // Si el usuario ya está autenticado, redirigir automáticamente
+  React.useEffect(() => {
+    if (user) {
+      router.replace('/publications');
+    }
+  }, [user, router]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -27,16 +38,18 @@ const LoginScreen = () => {
 
     setLoading(true);
     try {
-      // TODO: Implementar autenticación con Supabase
-      // const { data, error } = await supabase.auth.signInWithPassword({
-      //   email: email.trim(),
-      //   password: password,
-      // });
-      // if (error) throw error;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (error) throw error;
+
+      // La navegación se manejará automáticamente por el AuthRedirect
+      console.log('Login exitoso:', data.user?.email);
       
-      // Simulación de login exitoso por ahora
-      Alert.alert('Login', 'Login simulado exitoso');
-      console.log('Login exitoso (simulado)');
+      // Opcional: mostrar mensaje de éxito
+      Alert.alert('Éxito', 'Has iniciado sesión correctamente');
     } catch (error: any) {
       Alert.alert('Error de inicio de sesión', error.message);
     } finally {
