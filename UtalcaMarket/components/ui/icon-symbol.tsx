@@ -1,9 +1,9 @@
 // Fallback for using MaterialIcons, EvilIcons, and Ionicons on Android and web.
 
+import { Entypo, EvilIcons, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { SymbolWeight } from 'expo-symbols';
 import React, { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
-import { MaterialIcons, EvilIcons, Ionicons, Entypo } from '@expo/vector-icons';
 
 // Define the available icon sets
 type IconSet = 'MaterialIcons' | 'EvilIcons' | 'Ionicons' | 'Entypo';
@@ -12,7 +12,7 @@ type IconSet = 'MaterialIcons' | 'EvilIcons' | 'Ionicons' | 'Entypo';
 type IconMapValue = [IconSet, string];
 
 // Define the main mapping type from SF Symbol name to our custom mapping value
-type IconMapping = Record<SymbolViewProps['name'], IconMapValue>;
+type IconMapping = Record<string, IconMapValue>;
 
 // Define the type for a valid SF Symbol name based on our mapping
 type IconSymbolName = keyof typeof MAPPING;
@@ -35,14 +35,14 @@ const MAPPING = {
   'trash.fill': ['Ionicons', 'trash-outline'],
   'gearshape.fill': ['Ionicons', 'settings-sharp'],
   'checkmark.circle.fill': ['Ionicons', 'checkmark-circle'],
-  'add-circle.fill': ['Ionicons', 'add-circle'],
+  'plus.circle.fill': ['Ionicons', 'add-circle'],
   'pencil': ['EvilIcons', 'pencil'],
   'magnifyingglass': ['EvilIcons', 'search'],
   'heart': ['EvilIcons', 'heart'],
   'star': ['EvilIcons', 'star'],
-  'navicon': ['EvilIcons', 'navicon'],
+  'ellipsis': ['Ionicons', 'ellipsis-horizontal'],
   'grid': ['Entypo', 'grid'],
-  'logout': ['MaterialIcons', 'logout'],
+  'arrowshape.turn.up.left.fill': ['MaterialIcons', 'logout'],
 
 } as const satisfies IconMapping;
 

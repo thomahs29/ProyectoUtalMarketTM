@@ -1,5 +1,4 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '@/contexts/AuthContext';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import React from 'react';

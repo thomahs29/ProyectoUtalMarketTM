@@ -1,5 +1,7 @@
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createDrawerNavigator, DrawerHeaderProps } from '@react-navigation/drawer';
+import { MaterialIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { TouchableOpacity, View } from 'react-native';
 
 import AuthRedirect from '@/components/AuthRedirect';
 import DrawerContent from '@/components/DrawerContent';
@@ -8,6 +10,16 @@ import LoginScreen from './LoginScreen';
 import PublicationsScreen from './publications';
 
 const Drawer = createDrawerNavigator();
+
+function CustomDrawerHeader(props: DrawerHeaderProps) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', height: 60, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E0E0E0' }}>
+      <TouchableOpacity onPress={() => props.navigation.toggleDrawer()}>
+        <MaterialIcons name="menu" size={28} color="#333" />
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 export default function DrawerLayout() {
   const { user } = useAuth();
@@ -27,7 +39,7 @@ export default function DrawerLayout() {
           />
         )}
         screenOptions={{
-          headerShown: false,
+          header: (props) => <CustomDrawerHeader {...props} />,
           drawerStyle: {
             backgroundColor: '#FFFFFF',
             width: 280,
