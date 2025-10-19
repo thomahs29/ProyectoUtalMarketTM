@@ -2,15 +2,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-interface Chat {
-  id: string;
-  userName: string;
-  lastMessage: string;
-  timestamp: string;
-  avatar: string;
-  unread: number;
-}
-
 interface Message {
   id: string;
   text: string;
@@ -18,9 +9,19 @@ interface Message {
   timestamp: string;
 }
 
+interface Chat {
+  id: string;
+  userName: string;
+  lastMessage: string;
+  timestamp: string;
+  avatar: string;
+  unread: number;
+  messages: Message[];
+}
+
 export default function MessagesScreen() {
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
-  const [chats] = useState<Chat[]>([
+  const [chats, setChats] = useState<Chat[]>([
     {
       id: '1',
       userName: 'Juan García',
@@ -28,6 +29,26 @@ export default function MessagesScreen() {
       timestamp: '10:30',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Juan',
       unread: 2,
+      messages: [
+        {
+          id: '1',
+          text: 'Hola, ¿tienes ese producto?',
+          sender: 'other',
+          timestamp: '09:00',
+        },
+        {
+          id: '2',
+          text: 'Sí, lo tengo disponible',
+          sender: 'me',
+          timestamp: '09:05',
+        },
+        {
+          id: '3',
+          text: '¿Aún disponible?',
+          sender: 'other',
+          timestamp: '10:30',
+        },
+      ],
     },
     {
       id: '2',
@@ -36,6 +57,32 @@ export default function MessagesScreen() {
       timestamp: 'Ayer',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
       unread: 0,
+      messages: [
+        {
+          id: '1',
+          text: 'Hola María, ¿cómo estás?',
+          sender: 'me',
+          timestamp: '15:30',
+        },
+        {
+          id: '2',
+          text: 'Bien, ¿y tú?',
+          sender: 'other',
+          timestamp: '15:35',
+        },
+        {
+          id: '3',
+          text: 'Podemos vernos para recoger el producto',
+          sender: 'me',
+          timestamp: '16:00',
+        },
+        {
+          id: '4',
+          text: 'Perfecto, nos vemos mañana',
+          sender: 'other',
+          timestamp: '16:05',
+        },
+      ],
     },
     {
       id: '3',
@@ -44,48 +91,65 @@ export default function MessagesScreen() {
       timestamp: '12/10',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos',
       unread: 0,
-    },
-  ]);
-
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: '¿Hola, cómo estás?',
-      sender: 'other',
-      timestamp: '09:00',
-    },
-    {
-      id: '2',
-      text: 'Bien, ¿y tú? ¿Qué tal el producto?',
-      sender: 'me',
-      timestamp: '09:05',
-    },
-    {
-      id: '3',
-      text: '¿Aún disponible?',
-      sender: 'other',
-      timestamp: '10:30',
+      messages: [
+        {
+          id: '1',
+          text: 'Hola Carlos, recibí mi orden',
+          sender: 'me',
+          timestamp: '10:00',
+        },
+        {
+          id: '2',
+          text: 'Qué bueno, ¿todo bien?',
+          sender: 'other',
+          timestamp: '10:05',
+        },
+        {
+          id: '3',
+          text: 'Perfecto, muy buen producto',
+          sender: 'me',
+          timestamp: '10:10',
+        },
+        {
+          id: '4',
+          text: 'Gracias por la compra',
+          sender: 'other',
+          timestamp: '10:15',
+        },
+      ],
     },
   ]);
 
   const [messageText, setMessageText] = useState('');
 
   const handleSendMessage = () => {
-    if (messageText.trim()) {
-      const newMessage: Message = {
-        id: String(messages.length + 1),
-        text: messageText,
-        sender: 'me',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages([...messages, newMessage]);
+    if (messageText.trim() && selectedChat) {
+      setChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat.id === selectedChat) {
+            const newMessage: Message = {
+              id: String(chat.messages.length + 1),
+              text: messageText,
+              sender: 'me',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            };
+            return {
+              ...chat,
+              messages: [...chat.messages, newMessage],
+              lastMessage: messageText,
+              timestamp: 'Ahora',
+            };
+          }
+          return chat;
+        })
+      );
       setMessageText('');
     }
   };
 
-  if (selectedChat) {
-    const chat = chats.find(c => c.id === selectedChat);
+  const currentChat = chats.find(c => c.id === selectedChat);
 
+  if (selectedChat && currentChat) {
     return (
       <View style={styles.chatContainer}>
         {/* Header */}
@@ -94,15 +158,15 @@ export default function MessagesScreen() {
             <MaterialIcons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
           <View style={styles.chatHeaderInfo}>
-            <Image source={{ uri: chat?.avatar }} style={styles.chatHeaderAvatar} />
-            <Text style={styles.chatHeaderName}>{chat?.userName}</Text>
+            <Image source={{ uri: currentChat.avatar }} style={styles.chatHeaderAvatar} />
+            <Text style={styles.chatHeaderName}>{currentChat.userName}</Text>
           </View>
           <MaterialIcons name="more-vert" size={24} color="#333" />
         </View>
 
         {/* Messages */}
         <FlatList
-          data={messages}
+          data={currentChat.messages}
           renderItem={({ item }) => (
             <View
               style={[
