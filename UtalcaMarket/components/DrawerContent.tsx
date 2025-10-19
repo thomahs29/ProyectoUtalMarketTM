@@ -3,12 +3,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import React from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface DrawerContentProps extends DrawerContentComponentProps {
