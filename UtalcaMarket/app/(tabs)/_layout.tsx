@@ -39,41 +39,43 @@ export default function DrawerLayout() {
           />
         )}
         screenOptions={{
-          header: (props) => <CustomDrawerHeader {...props} />,
-          drawerStyle: {
-            backgroundColor: '#FFFFFF',
-            width: 280,
-          },
-          drawerType: 'front',
-          overlayColor: 'rgba(0, 0, 0, 0.5)',
-        }}
-      >
-        {user ? (
-          <>
-            <Drawer.Screen
-              name="publications"
-              options={{
-                drawerLabel: 'Publicaciones',
-              }}
-            >
-              {() => (
-                <PublicationsScreen 
-                  showCreateModal={showCreateModal} 
-                  setShowCreateModal={setShowCreateModal} 
-                />
-              )}
-            </Drawer.Screen>
-          </>
-        ) : (
-          <Drawer.Screen
-            name="LoginScreen"
-            component={LoginScreen}
-            options={{
-              drawerLabel: 'Iniciar Sesión',
-            }}
-          />
-        )}
-      </Drawer.Navigator>
+          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          headerShown: false,
+          tabBarButton: HapticTab,
+        }}>
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+            href: user ? '/(tabs)' : null, // Solo mostrar si está autenticado
+          }}
+        />
+        <Tabs.Screen
+          name="explore"
+          options={{
+            title: 'Explore',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+            href: user ? '/(tabs)/explore' : null, // Solo mostrar si está autenticado
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Perfil',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+            href: user ? '/(tabs)/profile' : null, // Solo mostrar si está autenticado
+          }}
+        />
+        <Tabs.Screen
+          name="LoginScreen"
+          options={{
+            title: 'Login',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+            href: !user ? '/(tabs)/LoginScreen' : null, // Solo mostrar si NO está autenticado
+          }}
+        />
+      </Tabs>
     </AuthRedirect>
   );
 }
