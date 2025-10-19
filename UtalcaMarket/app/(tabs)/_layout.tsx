@@ -44,6 +44,13 @@ export default function TabLayout() {
             href: !user ? '/(tabs)/LoginScreen' : null, // Solo mostrar si NO está autenticado
           }}
         />
+        <Tabs.Screen
+          name="RegisterScreen"
+          options={{
+            title: 'Registro',
+            href: null,
+          }}
+        />
       </Tabs>
     </AuthRedirect>
   );

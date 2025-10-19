@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -112,11 +112,14 @@ const LoginScreen = () => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => {}}>
+          <Link href="/(tabs)/RegisterScreen" asChild>
+            <TouchableOpacity>
             <Text style={styles.registerText}>
-              ¿No tienes cuenta? <Text style={styles.registerLink}>Regístrate</Text>
+              ¿No tienes cuenta?{' '}
+              <Text style={styles.registerLink}>Regístrate</Text>
             </Text>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </Link>
         </View>
       </View>
     </KeyboardAvoidingView>
