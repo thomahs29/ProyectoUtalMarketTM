@@ -37,6 +37,14 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Perfil',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.circle.fill" color={color} />,
+            href: user ? '/(tabs)/profile' : null, // Solo mostrar si está autenticado
+          }}
+        />
+        <Tabs.Screen
           name="LoginScreen"
           options={{
             title: 'Login',
