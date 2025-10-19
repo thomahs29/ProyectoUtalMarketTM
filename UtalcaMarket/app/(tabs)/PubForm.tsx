@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 
 type PublicationType = "producto" | "servicio" | null;
@@ -29,39 +30,67 @@ const CATEGORIAS = [
   "Otro",
 ];
 
+// Componente para mostrar vista previa de video
+const VideoPreview = ({ uri }: { uri: string }) => {
+  const player = useVideoPlayer(uri, (player) => {
+    player.loop = true;
+    player.muted = true;
+  });
+
+  return (
+    <View style={styles.videoContainer}>
+      <VideoView
+        player={player}
+        style={styles.video}
+        nativeControls={false}
+        contentFit="cover"
+      />
+      <View style={styles.videoTag}>
+        <Ionicons name="videocam" size={16} color="#FFF" />
+      </View>
+    </View>
+  );
+};
+
 const PubForm = () => {
   const [nombre, setNombre] = useState("");
   const [tipo, setTipo] = useState<PublicationType>(null);
   const [categoria, setCategoria] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [precio, setPrecio] = useState("");
-  const [imagenes, setImagenes] = useState<string[]>([]);
+  const [archivos, setArchivos] = useState<{ uri: string; type: 'image' | 'video' }[]>([]);
   const [ubicacion, setUbicacion] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Función para seleccionar imágenes
-  const seleccionarImagenes = async () => {
+  // Función para seleccionar imágenes y videos
+  const seleccionarArchivos = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
         "Permiso denegado",
-        "Necesitamos acceso a tu galería para seleccionar imágenes"
+        "Necesitamos acceso a tu galería para seleccionar archivos"
       );
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ['images', 'videos'],
       allowsMultipleSelection: true,
       quality: 0.8,
+      videoMaxDuration: 60, // Máximo 60 segundos de video
     });
 
     if (!result.canceled) {
-      const nuevasImagenes = result.assets.map((asset) => asset.uri);
-      setImagenes([...imagenes, ...nuevasImagenes]);
+      const nuevosArchivos = result.assets
+        .filter(asset => asset.type === 'image' || asset.type === 'video')
+        .map((asset) => ({
+          uri: asset.uri,
+          type: asset.type as 'image' | 'video',
+        }));
+      setArchivos([...archivos, ...nuevosArchivos]);
     }
   };
 
@@ -91,10 +120,10 @@ const PubForm = () => {
     }
   };
 
-  // Función para eliminar una imagen
-  const eliminarImagen = (index: number) => {
-    const nuevasImagenes = imagenes.filter((_, i) => i !== index);
-    setImagenes(nuevasImagenes);
+  // Función para eliminar un archivo
+  const eliminarArchivo = (index: number) => {
+    const nuevosArchivos = archivos.filter((_, i) => i !== index);
+    setArchivos(nuevosArchivos);
   };
 
   // Función para enviar el formulario
@@ -128,7 +157,7 @@ const PubForm = () => {
       categoria,
       descripcion,
       precio: parseFloat(precio),
-      imagenes,
+      archivos,
       ubicacion,
     };
 
@@ -145,7 +174,7 @@ const PubForm = () => {
     setCategoria("");
     setDescripcion("");
     setPrecio("");
-    setImagenes([]);
+    setArchivos([]);
     setUbicacion(null);
   };
 
@@ -253,25 +282,29 @@ const PubForm = () => {
           />
         </View>
 
-        {/* Imágenes */}
+        {/* Imágenes y Videos */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Imágenes</Text>
+          <Text style={styles.label}>Imágenes y Videos</Text>
           <TouchableOpacity
             style={styles.imageButton}
-            onPress={seleccionarImagenes}
+            onPress={seleccionarArchivos}
           >
             <Ionicons name="images" size={24} color="#707cb4ff" />
-            <Text style={styles.imageButtonText}>Seleccionar Imágenes</Text>
+            <Text style={styles.imageButtonText}>Seleccionar Archivos</Text>
           </TouchableOpacity>
 
-          {imagenes.length > 0 && (
+          {archivos.length > 0 && (
             <View style={styles.imagenesPreview}>
-              {imagenes.map((uri, index) => (
+              {archivos.map((archivo, index) => (
                 <View key={index} style={styles.imagenContainer}>
-                  <Image source={{ uri }} style={styles.imagen} />
+                  {archivo.type === 'image' ? (
+                    <Image source={{ uri: archivo.uri }} style={styles.imagen} />
+                  ) : (
+                    <VideoPreview uri={archivo.uri} />
+                  )}
                   <TouchableOpacity
                     style={styles.eliminarImagen}
-                    onPress={() => eliminarImagen(index)}
+                    onPress={() => eliminarArchivo(index)}
                   >
                     <Ionicons name="close-circle" size={24} color="#FF3B30" />
                   </TouchableOpacity>
@@ -429,6 +462,25 @@ const styles = StyleSheet.create({
     right: -8,
     backgroundColor: "#FFF",
     borderRadius: 12,
+  },
+  videoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#000",
+  },
+  video: {
+    width: 100,
+    height: 100,
+  },
+  videoTag: {
+    position: "absolute",
+    bottom: 5,
+    right: 5,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 4,
+    padding: 4,
   },
   locationButton: {
     flexDirection: "row",
