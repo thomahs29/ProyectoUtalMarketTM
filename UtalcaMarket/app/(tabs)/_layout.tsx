@@ -41,6 +41,14 @@ export default function TabLayout() {
           href: user ? '/(tabs)/MisProductos' : null,
         }}
       />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Mensajes',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          href: user ? '/(tabs)/messages' : null,
+        }}
+      />
     </Tabs>
   );
 }

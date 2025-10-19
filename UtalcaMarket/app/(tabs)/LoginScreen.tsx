@@ -20,7 +20,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user } = useAuth();
+  const { user, setLocalUser } = useAuth();
   const router = useRouter();
 
   // Si el usuario ya está autenticado, redirigir automáticamente
@@ -33,6 +33,41 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Por favor completa todos los campos');
+      return;
+    }
+
+    // Credenciales de prueba
+    const testCredentials = [
+      { email: 'test@example.com', password: 'password123' },
+      { email: 'user@test.com', password: 'test123' },
+      { email: 'demo@utalca.com', password: 'demo123' },
+    ];
+
+    const isValidCredential = testCredentials.some(
+      cred => cred.email === email.trim() && cred.password === password
+    );
+
+    if (isValidCredential) {
+      // Crear un usuario simulado
+      const mockUser = {
+        id: Math.random().toString(),
+        aud: 'authenticated',
+        role: 'authenticated',
+        email: email.trim(),
+        email_confirmed_at: new Date().toISOString(),
+        phone: '',
+        confirmed_at: new Date().toISOString(),
+        last_sign_in_at: new Date().toISOString(),
+        app_metadata: { provider: 'demo', providers: ['demo'] },
+        user_metadata: { full_name: email.split('@')[0] },
+        identities: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any;
+
+      setLocalUser(mockUser);
+      Alert.alert('Éxito', `Has iniciado sesión como ${email}`);
+      console.log('Login exitoso (demo):', email);
       return;
     }
 
