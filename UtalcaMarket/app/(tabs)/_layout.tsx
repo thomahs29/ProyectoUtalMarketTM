@@ -1,27 +1,53 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import React, { useState } from 'react';
+import { TouchableOpacity, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { createDrawerNavigator, DrawerHeaderProps } from '@react-navigation/drawer';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import AuthRedirect from '@/components/AuthRedirect';
+import DrawerContent from '@/components/DrawerContent';
+import { useAuth } from '@/contexts/AuthContext';
+import LoginScreen from './LoginScreen';
+import PublicationsScreen from './publications';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+const Drawer = createDrawerNavigator();
+
+function CustomDrawerHeader(props: DrawerHeaderProps) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', height: 60, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E0E0E0' }}>
+      <TouchableOpacity onPress={() => props.navigation.toggleDrawer()}>
+        <MaterialIcons name="menu" size={28} color="#333" />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+export default function DrawerLayout() {
+  const { user } = useAuth();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const handleCreatePublication = () => {
+    setShowCreateModal(true);
+  };
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+    <AuthRedirect>
+      <Drawer.Navigator
+        drawerContent={(props) => (
+          <DrawerContent 
+            {...props} 
+            onCreatePublication={handleCreatePublication} 
+          />
+        )}
+        screenOptions={{
+          header: (props) => <CustomDrawerHeader {...props} />,
+          drawerStyle: {
+            backgroundColor: '#FFFFFF',
+            width: 280,
+          },
+          drawerType: 'front',
+          overlayColor: 'rgba(0, 0, 0, 0.5)',
         }}
       />
       <Tabs.Screen
@@ -46,5 +72,33 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+      >
+        {user ? (
+          <>
+            <Drawer.Screen
+              name="publications"
+              options={{
+                drawerLabel: 'Publicaciones',
+              }}
+            >
+              {() => (
+                <PublicationsScreen 
+                  showCreateModal={showCreateModal} 
+                  setShowCreateModal={setShowCreateModal} 
+                />
+              )}
+            </Drawer.Screen>
+          </>
+        ) : (
+          <Drawer.Screen
+            name="LoginScreen"
+            component={LoginScreen}
+            options={{
+              drawerLabel: 'Iniciar Sesión',
+            }}
+          />
+        )}
+      </Drawer.Navigator>
+    </AuthRedirect>
   );
 }
