@@ -40,7 +40,7 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: 'Perfil',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.circle.fill" color={color} />,
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
             href: user ? '/(tabs)/profile' : null, // Solo mostrar si está autenticado
           }}
         />
