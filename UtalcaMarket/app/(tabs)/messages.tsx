@@ -1,12 +1,21 @@
+import { useAuth } from '@/contexts/AuthContext';
+import {
+    getConversationMessages,
+    getOtherParticipant,
+    getUserConversations,
+    sendMessage,
+    subscribeToMessages,
+    unsubscribeFromMessages,
+} from '@/utils/messagingService';
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface Message {
   id: string;
-  text: string;
-  sender: 'me' | 'other';
-  timestamp: string;
+  content: string;
+  sender_id: string;
+  created_at: string;
 }
 
 interface Chat {
@@ -16,136 +25,148 @@ interface Chat {
   timestamp: string;
   avatar: string;
   unread: number;
-  messages: Message[];
+  participant_id: string;
 }
 
 export default function MessagesScreen() {
+  const { user } = useAuth();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
-  const [chats, setChats] = useState<Chat[]>([
-    {
-      id: '1',
-      userName: 'Juan García',
-      lastMessage: '¿Aún disponible?',
-      timestamp: '10:30',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Juan',
-      unread: 2,
-      messages: [
-        {
-          id: '1',
-          text: 'Hola, ¿tienes ese producto?',
-          sender: 'other',
-          timestamp: '09:00',
-        },
-        {
-          id: '2',
-          text: 'Sí, lo tengo disponible',
-          sender: 'me',
-          timestamp: '09:05',
-        },
-        {
-          id: '3',
-          text: '¿Aún disponible?',
-          sender: 'other',
-          timestamp: '10:30',
-        },
-      ],
-    },
-    {
-      id: '2',
-      userName: 'María López',
-      lastMessage: 'Perfecto, nos vemos mañana',
-      timestamp: 'Ayer',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
-      unread: 0,
-      messages: [
-        {
-          id: '1',
-          text: 'Hola María, ¿cómo estás?',
-          sender: 'me',
-          timestamp: '15:30',
-        },
-        {
-          id: '2',
-          text: 'Bien, ¿y tú?',
-          sender: 'other',
-          timestamp: '15:35',
-        },
-        {
-          id: '3',
-          text: 'Podemos vernos para recoger el producto',
-          sender: 'me',
-          timestamp: '16:00',
-        },
-        {
-          id: '4',
-          text: 'Perfecto, nos vemos mañana',
-          sender: 'other',
-          timestamp: '16:05',
-        },
-      ],
-    },
-    {
-      id: '3',
-      userName: 'Carlos Rodríguez',
-      lastMessage: 'Gracias por la compra',
-      timestamp: '12/10',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos',
-      unread: 0,
-      messages: [
-        {
-          id: '1',
-          text: 'Hola Carlos, recibí mi orden',
-          sender: 'me',
-          timestamp: '10:00',
-        },
-        {
-          id: '2',
-          text: 'Qué bueno, ¿todo bien?',
-          sender: 'other',
-          timestamp: '10:05',
-        },
-        {
-          id: '3',
-          text: 'Perfecto, muy buen producto',
-          sender: 'me',
-          timestamp: '10:10',
-        },
-        {
-          id: '4',
-          text: 'Gracias por la compra',
-          sender: 'other',
-          timestamp: '10:15',
-        },
-      ],
-    },
-  ]);
-
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sendingMessage, setSendingMessage] = useState(false);
 
-  const handleSendMessage = () => {
-    if (messageText.trim() && selectedChat) {
-      setChats(prevChats =>
-        prevChats.map(chat => {
-          if (chat.id === selectedChat) {
-            const newMessage: Message = {
-              id: String(chat.messages.length + 1),
-              text: messageText,
-              sender: 'me',
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            };
-            return {
-              ...chat,
-              messages: [...chat.messages, newMessage],
-              lastMessage: messageText,
-              timestamp: 'Ahora',
-            };
-          }
-          return chat;
+  // Cargar conversaciones cuando se monta el componente
+  const loadConversations = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      setLoading(true);
+      const conversations = await getUserConversations(user.id);
+      
+      // Convertir conversaciones a formato de chat
+      const chatsList: Chat[] = await Promise.all(
+        conversations.map(async (conv) => {
+          const otherParticipantId =
+            conv.participant_1_id === user.id
+              ? conv.participant_2_id
+              : conv.participant_1_id;
+
+          const conversationId = conv.conversation_id || conv.id;
+          const otherUser = await getOtherParticipant(conversationId || '', user.id);
+          const userName = otherUser?.full_name || otherUser?.email?.split('@')[0] || 'Usuario';
+          const avatarSeed = otherUser?.email || otherUser?.id || 'user';
+
+          return {
+            id: conversationId || '',
+            userName: userName,
+            lastMessage: conv.last_message || 'Sin mensajes',
+            timestamp: conv.last_message_time
+              ? formatTime(new Date(conv.last_message_time))
+              : 'Ahora',
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
+            unread: 0,
+            participant_id: otherParticipantId,
+          };
         })
       );
+
+      setChats(chatsList);
+    } catch (error) {
+      console.error('Error cargando conversaciones:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  const loadMessages = useCallback(async () => {
+    if (!selectedChat) return;
+    try {
+      const msgs = await getConversationMessages(selectedChat, 50, 0);
+      setMessages(msgs.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        sender_id: msg.sender_id,
+        created_at: msg.created_at,
+      })));
+    } catch (error) {
+      console.error('Error cargando mensajes:', error);
+    }
+  }, [selectedChat]);
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  // Suscribirse a mensajes cuando se selecciona un chat
+  useEffect(() => {
+    if (selectedChat && user?.id) {
+      loadMessages();
+      // Suscribirse a nuevos mensajes en tiempo real
+      const channel = subscribeToMessages(selectedChat, (newMessage) => {
+        setMessages((prev) => [...prev, {
+          id: newMessage.id,
+          content: newMessage.content,
+          sender_id: newMessage.sender_id,
+          created_at: newMessage.created_at,
+        }]);
+      });
+
+      return () => {
+        if (channel) {
+          unsubscribeFromMessages(channel);
+        }
+      };
+    }
+  }, [selectedChat, user?.id, loadMessages]);
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !selectedChat || !user?.id) return;
+
+    try {
+      setSendingMessage(true);
+      await sendMessage(selectedChat, user.id, messageText);
       setMessageText('');
+      
+      // Recargar mensajes inmediatamente después de enviar
+      // (Realtime puede no estar habilitado o tener latencia)
+      setTimeout(async () => {
+        const msgs = await getConversationMessages(selectedChat, 50, 0);
+        setMessages(msgs.map(msg => ({
+          id: msg.id,
+          content: msg.content,
+          sender_id: msg.sender_id,
+          created_at: msg.created_at,
+        })));
+      }, 500);
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+    } finally {
+      setSendingMessage(false);
     }
   };
+
+  const formatTime = (date: Date): string => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (messageDate.getTime() === today.getTime()) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (messageDate.getTime() === new Date(today.getTime() - 86400000).getTime()) {
+      return 'Ayer';
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  if (loading && !selectedChat) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   const currentChat = chats.find(c => c.id === selectedChat);
 
@@ -166,28 +187,38 @@ export default function MessagesScreen() {
 
         {/* Messages */}
         <FlatList
-          data={currentChat.messages}
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.messageBubble,
-                item.sender === 'me' ? styles.messageBubbleMe : styles.messageBubbleOther,
-              ]}
-            >
-              <Text
+          data={messages}
+          renderItem={({ item }) => {
+            const isMine = item.sender_id === user?.id;
+            return (
+              <View
                 style={[
-                  styles.messageText,
-                  item.sender === 'me' ? styles.messageTextMe : styles.messageTextOther,
+                  styles.messageBubble,
+                  isMine ? styles.messageBubbleMe : styles.messageBubbleOther,
                 ]}
               >
-                {item.text}
-              </Text>
-              <Text style={styles.messageTime}>{item.timestamp}</Text>
-            </View>
-          )}
+                <Text
+                  style={[
+                    styles.messageText,
+                    isMine ? styles.messageTextMe : styles.messageTextOther,
+                  ]}
+                >
+                  {item.content}
+                </Text>
+                <Text style={styles.messageTime}>
+                  {formatTime(new Date(item.created_at))}
+                </Text>
+              </View>
+            );
+          }}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.messagesList}
           inverted={false}
+          ListEmptyComponent={
+            <View style={{ justifyContent: 'center', alignItems: 'center', paddingVertical: 20 }}>
+              <Text style={{ color: '#999' }}>Sin mensajes aún</Text>
+            </View>
+          }
         />
 
         {/* Input */}
@@ -199,9 +230,18 @@ export default function MessagesScreen() {
             onChangeText={setMessageText}
             multiline
             maxLength={500}
+            editable={!sendingMessage}
           />
-          <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
-            <MaterialIcons name="send" size={20} color="#FFFFFF" />
+          <TouchableOpacity 
+            onPress={handleSendMessage} 
+            style={[styles.sendButton, sendingMessage && { opacity: 0.6 }]}
+            disabled={sendingMessage}
+          >
+            {sendingMessage ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <MaterialIcons name="send" size={20} color="#FFFFFF" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
