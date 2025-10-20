@@ -148,13 +148,9 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    console.log('🔴 handleLogout called');
     try {
-      console.log('🔴 Calling signOut()');
       await signOut();
-      console.log('🔴 signOut() completed successfully');
     } catch (error: any) {
-      console.log('🔴 Error during logout:', error);
       Alert.alert('Error', 'No se pudo cerrar sesión: ' + error.message);
     }
   };
