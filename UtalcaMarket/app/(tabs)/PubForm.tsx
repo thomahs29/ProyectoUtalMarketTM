@@ -94,6 +94,33 @@ const PubForm = () => {
     }
   };
 
+  // Función para tomar foto con la cámara
+  const tomarFoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permiso denegado",
+        "Necesitamos acceso a tu cámara para tomar fotos"
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [4, 3],
+    });
+
+    if (!result.canceled) {
+      const nuevaFoto = {
+        uri: result.assets[0].uri,
+        type: 'image' as 'image' | 'video',
+      };
+      setArchivos([...archivos, nuevaFoto]);
+    }
+  };
+
   // Función para obtener geolocalización
   const obtenerUbicacion = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -285,13 +312,24 @@ const PubForm = () => {
         {/* Imágenes y Videos */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Imágenes y Videos</Text>
-          <TouchableOpacity
-            style={styles.imageButton}
-            onPress={seleccionarArchivos}
-          >
-            <Ionicons name="images" size={24} color="#707cb4ff" />
-            <Text style={styles.imageButtonText}>Seleccionar Archivos</Text>
-          </TouchableOpacity>
+          
+          <View style={styles.mediaButtonsContainer}>
+            <TouchableOpacity
+              style={[styles.mediaButton, styles.cameraButton]}
+              onPress={tomarFoto}
+            >
+              <Ionicons name="camera" size={24} color="#707cb4ff" />
+              <Text style={styles.mediaButtonText}>Tomar Foto</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.mediaButton, styles.galleryButton]}
+              onPress={seleccionarArchivos}
+            >
+              <Ionicons name="images" size={24} color="#707cb4ff" />
+              <Text style={styles.mediaButtonText}>Galería</Text>
+            </TouchableOpacity>
+          </View>
 
           {archivos.length > 0 && (
             <View style={styles.imagenesPreview}>
@@ -423,6 +461,34 @@ const styles = StyleSheet.create({
   },
   categoriaTextActive: {
     color: "#FFF",
+    fontWeight: "600",
+  },
+  mediaButtonsContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
+  },
+  mediaButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 15,
+    backgroundColor: "#FFF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#707cb4ff",
+  },
+  cameraButton: {
+    // Estilos específicos para el botón de cámara si es necesario
+  },
+  galleryButton: {
+    // Estilos específicos para el botón de galería si es necesario
+  },
+  mediaButtonText: {
+    fontSize: 14,
+    color: "#707cb4ff",
     fontWeight: "600",
   },
   imageButton: {
