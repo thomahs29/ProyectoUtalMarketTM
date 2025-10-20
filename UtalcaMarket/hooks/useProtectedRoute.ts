@@ -5,25 +5,25 @@ import { useEffect, useRef } from 'react';
 export function useProtectedRoute() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const previousUserRef = useRef<boolean | null>(null);
+  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
-    // Solo ejecutar después de que el loading termina
+    // Si aún está cargando, no hacer nada
     if (loading) return;
 
-    const hasUser = !!user;
-    const hadUser = previousUserRef.current;
-
-    // Si pasó de tener usuario a no tener usuario, redirige
-    if (hadUser === true && hasUser === false) {
-      console.log('Logout detectado, redirigiendo a LoginScreen');
+    // Si no hay usuario y no hemos redirigido aún, redirige a login
+    if (!user && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
       try {
         router.replace('/(tabs)/LoginScreen');
       } catch (error) {
-        console.error('Error redirecting:', error);
+        console.error('Error redirecting to login:', error);
       }
     }
-
-    previousUserRef.current = hasUser;
+    
+    // Si hay usuario nuevamente, reset el flag
+    if (user && hasRedirectedRef.current) {
+      hasRedirectedRef.current = false;
+    }
   }, [user, loading, router]);
 }

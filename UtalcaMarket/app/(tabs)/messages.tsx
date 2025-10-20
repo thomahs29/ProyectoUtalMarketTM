@@ -79,21 +79,6 @@ export default function MessagesScreen() {
     }
   }, [user?.id]);
 
-  const loadMessages = useCallback(async () => {
-    if (!selectedChat) return;
-    try {
-      const msgs = await getConversationMessages(selectedChat, 50, 0);
-      setMessages(msgs.map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        sender_id: msg.sender_id,
-        created_at: msg.created_at,
-      })));
-    } catch (error) {
-      console.error('Error cargando mensajes:', error);
-    }
-  }, [selectedChat]);
-
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
@@ -101,7 +86,21 @@ export default function MessagesScreen() {
   // Suscribirse a mensajes cuando se selecciona un chat
   useEffect(() => {
     if (selectedChat && user?.id) {
-      loadMessages();
+      // Cargar mensajes inmediatamente
+      (async () => {
+        try {
+          const msgs = await getConversationMessages(selectedChat, 50, 0);
+          setMessages(msgs.map(msg => ({
+            id: msg.id,
+            content: msg.content,
+            sender_id: msg.sender_id,
+            created_at: msg.created_at,
+          })));
+        } catch (error) {
+          console.error('Error cargando mensajes:', error);
+        }
+      })();
+
       // Suscribirse a nuevos mensajes en tiempo real
       const channel = subscribeToMessages(selectedChat, (newMessage) => {
         setMessages((prev) => [...prev, {
@@ -118,7 +117,7 @@ export default function MessagesScreen() {
         }
       };
     }
-  }, [selectedChat, user?.id, loadMessages]);
+  }, [selectedChat, user?.id]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedChat || !user?.id) return;
