@@ -10,7 +10,8 @@ import {
 } from '@/utils/messagingService';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Video, Audio } from 'expo-av';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Modal } from 'react-native';
 
 interface Message {
@@ -32,6 +33,84 @@ interface Chat {
   participant_id: string;
 }
 
+// Componente para reproducir audio
+function AudioPlayer({ audioUri }: { audioUri: string }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [position, setPosition] = useState(0);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  useEffect(() => {
+    loadAudio();
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, [audioUri]);
+
+  const loadAudio = async () => {
+    try {
+      const { sound, status } = await Audio.Sound.createAsync({ uri: audioUri });
+      soundRef.current = sound;
+      if ('durationMillis' in status && status.durationMillis) {
+        setDuration(Math.floor(status.durationMillis / 1000));
+      }
+    } catch (error) {
+      console.error('Error cargando audio:', error);
+    }
+  };
+
+  const togglePlayPause = async () => {
+    try {
+      if (!soundRef.current) return;
+      
+      if (isPlaying) {
+        await soundRef.current.pauseAsync();
+      } else {
+        await soundRef.current.playAsync();
+        // Actualizar posición cada 100ms
+        const interval = setInterval(async () => {
+          const status = await soundRef.current?.getStatusAsync();
+          if (status && 'isPlaying' in status && status.isPlaying) {
+            setPosition(Math.floor(('positionMillis' in status ? status.positionMillis : 0) / 1000));
+          } else {
+            clearInterval(interval);
+          }
+        }, 100);
+      }
+      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error('Error reproduciendo audio:', error);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <View style={styles.audioPlayerContainer}>
+      <MaterialIcons name="audiotrack" size={64} color="#007AFF" />
+      <TouchableOpacity 
+        style={styles.audioPlayButton}
+        onPress={togglePlayPause}
+      >
+        <MaterialIcons 
+          name={isPlaying ? "pause-circle-filled" : "play-circle-filled"} 
+          size={48} 
+          color="#007AFF" 
+        />
+      </TouchableOpacity>
+      <Text style={styles.audioTime}>
+        {formatTime(position)} / {formatTime(duration)}
+      </Text>
+    </View>
+  );
+}
+
 export default function MessagesScreen() {
   const { user } = useAuth();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -43,6 +122,10 @@ export default function MessagesScreen() {
   const [selectedMediaUri, setSelectedMediaUri] = useState<string | null>(null);
   const [selectedMediaType, setSelectedMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
+  const [expandedAudio, setExpandedAudio] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   // Cargar conversaciones cuando se monta el componente
   const loadConversations = useCallback(async () => {
@@ -222,12 +305,41 @@ export default function MessagesScreen() {
 
   const handlePickAudio = async () => {
     try {
-      // Nota: expo-image-picker no soporta audio directamente
-      // Para audio, usaríamos expo-av o similar
-      // Por ahora, mostrar mensaje informativo
-      Alert.alert('Audio', 'La selección de audio será implementada próximamente.');
+      if (isRecording) {
+        // Detener grabación
+        await recordingRef.current?.stopAndUnloadAsync();
+        const uri = recordingRef.current?.getURI();
+        recordingRef.current = null;
+        setIsRecording(false);
+
+        if (uri) {
+          setSelectedMediaUri(uri);
+          setSelectedMediaType('audio');
+          Alert.alert('Éxito', 'Audio grabado. Presiona enviar para compartirlo.');
+        }
+      } else {
+        // Iniciar grabación
+        const { granted } = await Audio.requestPermissionsAsync();
+        if (!granted) {
+          Alert.alert('Permiso denegado', 'Se necesita permiso para grabar audio.');
+          return;
+        }
+
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+        });
+
+        const recording = new Audio.Recording();
+        await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+        await recording.startAsync();
+        recordingRef.current = recording;
+        setIsRecording(true);
+      }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo seleccionar el audio.');
+      console.error('Error con audio:', error);
+      Alert.alert('Error', 'No se pudo grabar el audio.');
+      setIsRecording(false);
     }
   };
 
@@ -302,16 +414,28 @@ export default function MessagesScreen() {
                   </TouchableOpacity>
                 )}
                 {item.media_url && item.media_type === 'video' && (
-                  <View style={styles.videoPlaceholder}>
-                    <MaterialIcons name="play-circle-filled" size={48} color="#FFFFFF" />
-                    <Text style={styles.videoText}>Video</Text>
-                  </View>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setTimeout(() => setExpandedVideo(item.media_url!), 0);
+                    }}
+                  >
+                    <View style={styles.videoPlaceholder}>
+                      <MaterialIcons name="play-circle-filled" size={48} color="#FFFFFF" />
+                      <Text style={styles.videoText}>Video</Text>
+                    </View>
+                  </TouchableOpacity>
                 )}
                 {item.media_url && item.media_type === 'audio' && (
-                  <View style={styles.audioPlaceholder}>
-                    <MaterialIcons name="audiotrack" size={32} color="#FFFFFF" />
-                    <Text style={styles.audioText}>Audio</Text>
-                  </View>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setTimeout(() => setExpandedAudio(item.media_url!), 0);
+                    }}
+                  >
+                    <View style={styles.audioPlaceholder}>
+                      <MaterialIcons name="play-circle-filled" size={32} color="#FFFFFF" />
+                      <Text style={styles.audioText}>Audio</Text>
+                    </View>
+                  </TouchableOpacity>
                 )}
                 
                 {/* Texto del mensaje */}
@@ -441,6 +565,59 @@ export default function MessagesScreen() {
                 style={styles.expandedImage}
                 resizeMode="contain"
               />
+            )}
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Modal para reproducir video */}
+        <Modal
+          visible={!!expandedVideo}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setExpandedVideo(null)}
+        >
+          <TouchableOpacity 
+            style={styles.modalContainer}
+            activeOpacity={1}
+            onPress={() => setExpandedVideo(null)}
+          >
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setExpandedVideo(null)}
+            >
+              <MaterialIcons name="close" size={30} color="#FFF" />
+            </TouchableOpacity>
+            {expandedVideo && (
+              <Video
+                source={{ uri: expandedVideo }}
+                style={styles.expandedVideo}
+                useNativeControls
+                isLooping
+              />
+            )}
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Modal para reproducir audio */}
+        <Modal
+          visible={!!expandedAudio}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setExpandedAudio(null)}
+        >
+          <TouchableOpacity 
+            style={styles.modalContainer}
+            activeOpacity={1}
+            onPress={() => setExpandedAudio(null)}
+          >
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setExpandedAudio(null)}
+            >
+              <MaterialIcons name="close" size={30} color="#FFF" />
+            </TouchableOpacity>
+            {expandedAudio && (
+              <AudioPlayer audioUri={expandedAudio} />
             )}
           </TouchableOpacity>
         </Modal>
@@ -677,13 +854,18 @@ const styles = StyleSheet.create({
   mediaButtons: {
     flexDirection: 'row',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
+    gap: 16,
   },
   mediaButton: {
-    marginHorizontal: 8,
-    paddingVertical: 4,
+    marginHorizontal: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
   },
   mediaPreview: {
     paddingHorizontal: 12,
@@ -760,6 +942,27 @@ const styles = StyleSheet.create({
   expandedImage: {
     width: '90%',
     height: '90%',
+  },
+  expandedVideo: {
+    width: '90%',
+    height: '90%',
+  },
+  audioPlayerContainer: {
+    width: '80%',
+    paddingVertical: 30,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+  },
+  audioPlayButton: {
+    padding: 10,
+  },
+  audioTime: {
+    color: '#FFF',
+    fontSize: 14,
+    marginTop: 10,
   },
   closeButton: {
     position: 'absolute',
