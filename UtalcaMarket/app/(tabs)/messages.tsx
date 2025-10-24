@@ -6,16 +6,20 @@ import {
     sendMessage,
     subscribeToMessages,
     unsubscribeFromMessages,
+    uploadChatMedia,
 } from '@/utils/messagingService';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native';
 
 interface Message {
   id: string;
   content: string;
   sender_id: string;
   created_at: string;
+  media_url?: string;
+  media_type?: 'image' | 'video' | 'audio';
 }
 
 interface Chat {
@@ -36,6 +40,8 @@ export default function MessagesScreen() {
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [selectedMediaUri, setSelectedMediaUri] = useState<string | null>(null);
+  const [selectedMediaType, setSelectedMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
 
   // Cargar conversaciones cuando se monta el componente
   const loadConversations = useCallback(async () => {
@@ -120,15 +126,42 @@ export default function MessagesScreen() {
   }, [selectedChat, user?.id]);
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !selectedChat || !user?.id) return;
+    if ((!messageText.trim() && !selectedMediaUri) || !selectedChat || !user?.id) return;
 
     try {
       setSendingMessage(true);
-      await sendMessage(selectedChat, user.id, messageText);
+      let mediaUrl: string | undefined;
+
+      // Si hay media seleccionada, subirla primero
+      if (selectedMediaUri && selectedMediaType) {
+        mediaUrl = (await uploadChatMedia(
+          selectedChat,
+          user.id,
+          selectedMediaUri,
+          selectedMediaType
+        )) || undefined;
+
+        if (!mediaUrl) {
+          Alert.alert('Error', 'No se pudo subir el archivo. Intenta de nuevo.');
+          setSendingMessage(false);
+          return;
+        }
+      }
+
+      // Enviar mensaje con media opcional
+      await sendMessage(
+        selectedChat,
+        user.id,
+        messageText,
+        mediaUrl,
+        selectedMediaType || undefined
+      );
+
       setMessageText('');
-      
+      setSelectedMediaUri(null);
+      setSelectedMediaType(null);
+
       // Recargar mensajes inmediatamente después de enviar
-      // (Realtime puede no estar habilitado o tener latencia)
       setTimeout(async () => {
         const msgs = await getConversationMessages(selectedChat, 50, 0);
         setMessages(msgs.map(msg => ({
@@ -136,13 +169,66 @@ export default function MessagesScreen() {
           content: msg.content,
           sender_id: msg.sender_id,
           created_at: msg.created_at,
-        })));
+          media_url: (msg as any).media_url,
+          media_type: (msg as any).media_type,
+        } as Message)));
       }, 500);
     } catch (error) {
       console.error('Error enviando mensaje:', error);
+      Alert.alert('Error', 'No se pudo enviar el mensaje.');
     } finally {
       setSendingMessage(false);
     }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedMediaUri(result.assets[0].uri);
+        setSelectedMediaType('image');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo seleccionar la imagen.');
+    }
+  };
+
+  const handlePickVideo = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'videos',
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedMediaUri(result.assets[0].uri);
+        setSelectedMediaType('video');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo seleccionar el video.');
+    }
+  };
+
+  const handlePickAudio = async () => {
+    try {
+      // Nota: expo-image-picker no soporta audio directamente
+      // Para audio, usaríamos expo-av o similar
+      // Por ahora, mostrar mensaje informativo
+      Alert.alert('Audio', 'La selección de audio será implementada próximamente.');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo seleccionar el audio.');
+    }
+  };
+
+  const clearSelectedMedia = () => {
+    setSelectedMediaUri(null);
+    setSelectedMediaType(null);
   };
 
   const formatTime = (date: Date): string => {
@@ -196,14 +282,38 @@ export default function MessagesScreen() {
                   isMine ? styles.messageBubbleMe : styles.messageBubbleOther,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.messageText,
-                    isMine ? styles.messageTextMe : styles.messageTextOther,
-                  ]}
-                >
-                  {item.content}
-                </Text>
+                {/* Mostrar media si existe */}
+                {item.media_url && item.media_type === 'image' && (
+                  <Image
+                    source={{ uri: item.media_url }}
+                    style={styles.messageMedia}
+                  />
+                )}
+                {item.media_url && item.media_type === 'video' && (
+                  <View style={styles.videoPlaceholder}>
+                    <MaterialIcons name="play-circle-filled" size={48} color="#FFFFFF" />
+                    <Text style={styles.videoText}>Video</Text>
+                  </View>
+                )}
+                {item.media_url && item.media_type === 'audio' && (
+                  <View style={styles.audioPlaceholder}>
+                    <MaterialIcons name="audiotrack" size={32} color="#FFFFFF" />
+                    <Text style={styles.audioText}>Audio</Text>
+                  </View>
+                )}
+                
+                {/* Texto del mensaje */}
+                {item.content && (
+                  <Text
+                    style={[
+                      styles.messageText,
+                      isMine ? styles.messageTextMe : styles.messageTextOther,
+                    ]}
+                  >
+                    {item.content}
+                  </Text>
+                )}
+                
                 <Text style={styles.messageTime}>
                   {formatTime(new Date(item.created_at))}
                 </Text>
@@ -220,28 +330,79 @@ export default function MessagesScreen() {
           }
         />
 
-        {/* Input */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Escribe un mensaje..."
-            value={messageText}
-            onChangeText={setMessageText}
-            multiline
-            maxLength={500}
-            editable={!sendingMessage}
-          />
-          <TouchableOpacity 
-            onPress={handleSendMessage} 
-            style={[styles.sendButton, sendingMessage && { opacity: 0.6 }]}
-            disabled={sendingMessage}
-          >
-            {sendingMessage ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <MaterialIcons name="send" size={20} color="#FFFFFF" />
+        {/* Preview de media seleccionada */}
+        {selectedMediaUri && (
+          <View style={styles.mediaPreview}>
+            {selectedMediaType === 'image' && (
+              <Image
+                source={{ uri: selectedMediaUri }}
+                style={styles.previewImage}
+              />
             )}
-          </TouchableOpacity>
+            {selectedMediaType === 'video' && (
+              <View style={styles.previewVideo}>
+                <MaterialIcons name="movie" size={40} color="#FFF" />
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.removeMediaButton}
+              onPress={clearSelectedMedia}
+            >
+              <MaterialIcons name="close" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Input */}
+        <View style={styles.inputSection}>
+          {/* Media Buttons */}
+          <View style={styles.mediaButtons}>
+            <TouchableOpacity
+              style={styles.mediaButton}
+              onPress={handlePickImage}
+              disabled={sendingMessage}
+            >
+              <MaterialIcons name="image" size={24} color="#007AFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.mediaButton}
+              onPress={handlePickVideo}
+              disabled={sendingMessage}
+            >
+              <MaterialIcons name="videocam" size={24} color="#007AFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.mediaButton}
+              onPress={handlePickAudio}
+              disabled={sendingMessage}
+            >
+              <MaterialIcons name="mic" size={24} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Input Container */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Escribe un mensaje..."
+              value={messageText}
+              onChangeText={setMessageText}
+              multiline
+              maxLength={500}
+              editable={!sendingMessage}
+            />
+            <TouchableOpacity 
+              onPress={handleSendMessage} 
+              style={[styles.sendButton, sendingMessage && { opacity: 0.6 }]}
+              disabled={sendingMessage}
+            >
+              {sendingMessage ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <MaterialIcons name="send" size={20} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -465,5 +626,88 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // Nuevos estilos para media
+  inputSection: {
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
+  },
+  mediaButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  mediaButton: {
+    marginHorizontal: 8,
+    paddingVertical: 4,
+  },
+  mediaPreview: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F9F9F9',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    position: 'relative',
+  },
+  previewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  previewVideo: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeMediaButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageMedia: {
+    width: 200,
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  videoPlaceholder: {
+    width: 200,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  videoText: {
+    color: '#FFF',
+    marginTop: 8,
+    fontSize: 12,
+  },
+  audioPlaceholder: {
+    width: 200,
+    paddingVertical: 16,
+    borderRadius: 8,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  audioText: {
+    color: '#FFF',
+    marginTop: 8,
+    fontSize: 12,
   },
 });

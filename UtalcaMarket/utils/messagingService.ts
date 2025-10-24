@@ -111,12 +111,14 @@ export async function getConversationMessages(
 }
 
 /**
- * Enviar un mensaje
+ * Enviar un mensaje (con soporte opcional para media)
  */
 export async function sendMessage(
   conversationId: string,
   senderId: string,
-  content: string
+  content: string,
+  mediaUrl?: string,
+  mediaType?: 'image' | 'video' | 'audio'
 ): Promise<Message | null> {
   try {
     const { data, error } = await supabase
@@ -125,6 +127,8 @@ export async function sendMessage(
         conversation_id: conversationId,
         sender_id: senderId,
         content: content.trim(),
+        media_url: mediaUrl || null,
+        media_type: mediaType || null,
       })
       .select()
       .single();
@@ -135,6 +139,69 @@ export async function sendMessage(
     console.error('Error en sendMessage:', error);
     return null;
   }
+}
+
+/**
+ * Subir archivo de media al chat (imagen, video o audio)
+ */
+export async function uploadChatMedia(
+  conversationId: string,
+  userId: string,
+  fileUri: string,
+  mediaType: 'image' | 'video' | 'audio'
+): Promise<string | null> {
+  try {
+    // Obtener el archivo como blob
+    const response = await fetch(fileUri);
+    const blob = await response.blob();
+
+    // Generar nombre único para el archivo
+    const fileName = `${conversationId}/${userId}_${Date.now()}.${getFileExtension(mediaType, blob.type)}`;
+
+    // Subir a Storage
+    const { data, error } = await supabase.storage
+      .from('chat-media')
+      .upload(fileName, blob, {
+        contentType: blob.type,
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    // Obtener URL pública del archivo
+    const { data: publicData } = supabase.storage
+      .from('chat-media')
+      .getPublicUrl(fileName);
+
+    return publicData?.publicUrl || null;
+  } catch (error) {
+    console.error('Error en uploadChatMedia:', error);
+    return null;
+  }
+}
+
+/**
+ * Obtener extensión del archivo según tipo MIME
+ */
+function getFileExtension(mediaType: string, mimeType: string): string {
+  if (mediaType === 'image') {
+    if (mimeType.includes('jpeg')) return 'jpg';
+    if (mimeType.includes('png')) return 'png';
+    if (mimeType.includes('gif')) return 'gif';
+    if (mimeType.includes('webp')) return 'webp';
+  }
+  if (mediaType === 'video') {
+    if (mimeType.includes('mp4')) return 'mp4';
+    if (mimeType.includes('quicktime')) return 'mov';
+    if (mimeType.includes('webm')) return 'webm';
+  }
+  if (mediaType === 'audio') {
+    if (mimeType.includes('mpeg')) return 'mp3';
+    if (mimeType.includes('wav')) return 'wav';
+    if (mimeType.includes('ogg')) return 'ogg';
+    if (mimeType.includes('aac')) return 'm4a';
+  }
+  return 'bin';
 }
 
 /**
