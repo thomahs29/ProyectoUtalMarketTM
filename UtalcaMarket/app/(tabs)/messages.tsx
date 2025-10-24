@@ -11,7 +11,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from 'react-native';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Modal } from 'react-native';
 
 interface Message {
   id: string;
@@ -42,6 +42,7 @@ export default function MessagesScreen() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [selectedMediaUri, setSelectedMediaUri] = useState<string | null>(null);
   const [selectedMediaType, setSelectedMediaType] = useState<'image' | 'video' | 'audio' | null>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   // Cargar conversaciones cuando se monta el componente
   const loadConversations = useCallback(async () => {
@@ -101,6 +102,8 @@ export default function MessagesScreen() {
             content: msg.content,
             sender_id: msg.sender_id,
             created_at: msg.created_at,
+            media_url: (msg as any).media_url,
+            media_type: (msg as any).media_type,
           })));
         } catch (error) {
           console.error('Error cargando mensajes:', error);
@@ -114,6 +117,8 @@ export default function MessagesScreen() {
           content: newMessage.content,
           sender_id: newMessage.sender_id,
           created_at: newMessage.created_at,
+          media_url: (newMessage as any).media_url,
+          media_type: (newMessage as any).media_type,
         }]);
       });
 
@@ -284,10 +289,17 @@ export default function MessagesScreen() {
               >
                 {/* Mostrar media si existe */}
                 {item.media_url && item.media_type === 'image' && (
-                  <Image
-                    source={{ uri: item.media_url }}
-                    style={styles.messageMedia}
-                  />
+                  <TouchableOpacity 
+                    onPress={() => {
+                      // Pequeño delay para asegurar que el estado se actualiza
+                      setTimeout(() => setExpandedImage(item.media_url!), 0);
+                    }}
+                  >
+                    <Image
+                      source={{ uri: item.media_url }}
+                      style={styles.messageMedia}
+                    />
+                  </TouchableOpacity>
                 )}
                 {item.media_url && item.media_type === 'video' && (
                   <View style={styles.videoPlaceholder}>
@@ -404,6 +416,34 @@ export default function MessagesScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Modal para ver imagen ampliada */}
+        <Modal
+          visible={!!expandedImage}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setExpandedImage(null)}
+        >
+          <TouchableOpacity 
+            style={styles.modalContainer}
+            activeOpacity={1}
+            onPress={() => setExpandedImage(null)}
+          >
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setExpandedImage(null)}
+            >
+              <MaterialIcons name="close" size={30} color="#FFF" />
+            </TouchableOpacity>
+            {expandedImage && (
+              <Image
+                source={{ uri: expandedImage }}
+                style={styles.expandedImage}
+                resizeMode="contain"
+              />
+            )}
+          </TouchableOpacity>
+        </Modal>
       </View>
     );
   }
@@ -452,6 +492,7 @@ export default function MessagesScreen() {
         keyExtractor={item => item.id}
         scrollEnabled={true}
       />
+
     </View>
   );
 }
@@ -709,5 +750,21 @@ const styles = StyleSheet.create({
     color: '#FFF',
     marginTop: 8,
     fontSize: 12,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandedImage: {
+    width: '90%',
+    height: '90%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
   },
 });
