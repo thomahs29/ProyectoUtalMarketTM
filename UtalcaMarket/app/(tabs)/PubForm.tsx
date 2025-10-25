@@ -8,26 +8,23 @@ import {
   Alert,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "@/utils/supabase";
 
 type PublicationType = "producto" | "servicio" | null;
 
 const CATEGORIAS = [
-  "Electrónica",
-  "Ropa y Moda",
-  "Hogar y Jardín",
-  "Deportes",
-  "Libros",
-  "Juguetes",
-  "Alimentos",
-  "Salud y Belleza",
-  "Automóviles",
-  "Servicios Profesionales",
-  "Otro",
+  "electronics",
+  "books",
+  "clothing",
+  "home",
+  "sports",
+  "other",
 ];
 
 // Componente para mostrar vista previa de video
@@ -64,6 +61,7 @@ const PubForm = () => {
     longitude: number;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [subiendo, setSubiendo] = useState(false);
 
   // Función para seleccionar imágenes y videos
   const seleccionarArchivos = async () => {
@@ -153,8 +151,85 @@ const PubForm = () => {
     setArchivos(nuevosArchivos);
   };
 
+  // Función para subir archivos a Supabase Storage
+  const subirArchivos = async (): Promise<string[]> => {
+    // Si no hay archivos, retornar array vacío
+    if (archivos.length === 0) {
+      return [];
+    }
+
+    // Obtener el usuario y su token de sesión
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const urls: string[] = [];
+
+    for (const archivo of archivos) {
+      try {
+        console.log('Procesando archivo:', archivo.uri);
+
+        // Crear FormData para subir el archivo
+        const formData = new FormData();
+        
+        // Generar nombre único para el archivo
+        const fileExt = archivo.type === 'video' ? 'mp4' : 'jpg';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        // Incluir el user_id en la ruta del archivo
+        const filePath = `${session.user.id}/${fileName}`;
+
+        // Agregar el archivo al FormData
+        // @ts-ignore - FormData acepta uri en React Native
+        formData.append('file', {
+          uri: archivo.uri,
+          type: archivo.type === 'video' ? 'video/mp4' : 'image/jpeg',
+          name: fileName,
+        });
+
+        console.log('Subiendo archivo:', filePath);
+        console.log('Token de sesión:', session.access_token.substring(0, 20) + '...');
+
+        // Subir a Supabase Storage usando fetch directo con el token de sesión
+        const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/publications/${filePath}`;
+        
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`, // Usar el token de sesión, no la anon key
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error en la respuesta:', response.status, errorText);
+          throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('Archivo subido exitosamente:', result);
+
+        // Obtener URL pública del archivo
+        const { data: urlData } = supabase.storage
+          .from('publications')
+          .getPublicUrl(filePath);
+
+        console.log('URL pública generada:', urlData.publicUrl);
+        urls.push(urlData.publicUrl);
+      } catch (error) {
+        console.error('Error procesando archivo:', error);
+        Alert.alert("Error", `No se pudo subir uno de los archivos: ${error}`);
+        throw error; // Lanzar el error para detener el proceso
+      }
+    }
+
+    return urls;
+  };
+
   // Función para enviar el formulario
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validaciones
     if (!nombre.trim()) {
       Alert.alert("Error", "El nombre es requerido");
@@ -177,22 +252,60 @@ const PubForm = () => {
       return;
     }
 
-    // Aquí iría la lógica para guardar en Supabase
-    const publicacion = {
-      nombre,
-      tipo,
-      categoria,
-      descripcion,
-      precio: parseFloat(precio),
-      archivos,
-      ubicacion,
-    };
+    try {
+      // Mostrar indicador de carga
+      setSubiendo(true);
 
-    console.log("Publicación:", publicacion);
-    Alert.alert("Éxito", "Publicación creada correctamente");
+      // Subir archivos a Supabase Storage
+      const archivosUrls = await subirArchivos();
 
-    // Limpiar formulario
-    limpiarFormulario();
+      // Obtener el user_id del usuario autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        Alert.alert("Error", "Debes iniciar sesión para crear una publicación");
+        return;
+      }
+
+      // Preparar datos para la base de datos según el esquema de publications
+      const publicacion = {
+        title: nombre,
+        description: descripcion,
+        price: parseFloat(precio),
+        category: categoria,
+        pub_type: tipo,
+        user_id: user.id, // Reemplazar con user.id cuando esté disponible
+        media_url: archivosUrls, // URLs de los archivos multimedia subidos
+        location: ubicacion ? {
+          latitude: ubicacion.latitude,
+          longitude: ubicacion.longitude,
+        } : null,
+      };
+
+      console.log("Publicación a guardar:", publicacion);
+      
+      // Guardar en la tabla de publications de Supabase
+      const { data, error } = await supabase
+        .from('publications')
+        .insert([publicacion])
+        .select();
+
+      if (error) {
+        console.error("Error guardando publicación:", error);
+        throw error;
+      }
+
+      console.log("Publicación guardada:", data);
+      Alert.alert("Éxito", "Publicación creada correctamente");
+
+      // Limpiar formulario
+      limpiarFormulario();
+    } catch (error) {
+      console.error("Error al crear publicación:", error);
+      Alert.alert("Error", "No se pudo crear la publicación. Verifica tu conexión e intenta de nuevo.");
+    } finally {
+      setSubiendo(false);
+    }
   };
 
   const limpiarFormulario = () => {
@@ -370,8 +483,19 @@ const PubForm = () => {
         </View>
 
         {/* Botón Enviar */}
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Publicar</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, subiendo && styles.submitButtonDisabled]} 
+          onPress={handleSubmit}
+          disabled={subiendo}
+        >
+          {subiendo ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color="#FFF" size="small" />
+              <Text style={styles.submitButtonText}>Subiendo archivos...</Text>
+            </View>
+          ) : (
+            <Text style={styles.submitButtonText}>Publicar</Text>
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -571,6 +695,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
     marginBottom: 30,
+  },
+  submitButtonDisabled: {
+    backgroundColor: "#A0A0A0",
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   submitButtonText: {
     color: "#FFF",
