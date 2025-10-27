@@ -1,18 +1,18 @@
 import { useAuth } from '@/contexts/AuthContext';
 import {
-    getConversationMessages,
-    getOtherParticipant,
-    getUserConversations,
-    sendMessage,
-    subscribeToMessages,
-    unsubscribeFromMessages,
-    uploadChatMedia,
+  getConversationMessages,
+  getOtherParticipant,
+  getUserConversations,
+  sendMessage,
+  subscribeToMessages,
+  unsubscribeFromMessages,
+  uploadChatMedia,
 } from '@/utils/messagingService';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Audio, Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, Audio } from 'expo-av';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Modal } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface Message {
   id: string;
