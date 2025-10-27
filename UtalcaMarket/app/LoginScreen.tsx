@@ -51,7 +51,7 @@ const LoginScreen = () => {
       // Opcional: mostrar mensaje de éxito
       Alert.alert('Éxito', 'Has iniciado sesión correctamente');
     } catch (error: any) {
-      Alert.alert('Error de inicio de sesión', error.message);
+      Alert.alert('Error de inicio de sesión, una pena', error.message);
     } finally {
       setLoading(false);
     }
