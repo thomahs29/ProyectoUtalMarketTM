@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -45,14 +45,13 @@ const LoginScreen = () => {
 
       if (error) throw error;
 
-      if (data.user) {
-        console.log('Login exitoso:', data.user.email, 'UUID:', data.user.id);
-        Alert.alert('Éxito', `Has iniciado sesión como ${data.user.email}`);
-        // La navegación se maneja automáticamente por el AuthRedirect
-      }
+      // La navegación se manejará automáticamente por el AuthRedirect
+      console.log('Login exitoso:', data.user?.email);
+      
+      // Opcional: mostrar mensaje de éxito
+      Alert.alert('Éxito', 'Has iniciado sesión correctamente');
     } catch (error: any) {
-      Alert.alert('Error de inicio de sesión', error.message || 'No pudimos iniciar sesión');
-      console.error('Error:', error);
+      Alert.alert('Error de inicio de sesión', error.message);
     } finally {
       setLoading(false);
     }
@@ -113,14 +112,11 @@ const LoginScreen = () => {
             )}
           </TouchableOpacity>
 
-          <Link href="/(tabs)/RegisterScreen" asChild>
-            <TouchableOpacity>
+          <TouchableOpacity onPress={() => {}}>
             <Text style={styles.registerText}>
-              ¿No tienes cuenta?{' '}
-              <Text style={styles.registerLink}>Regístrate</Text>
+              ¿No tienes cuenta? <Text style={styles.registerLink}>Regístrate</Text>
             </Text>
-            </TouchableOpacity>
-          </Link>
+          </TouchableOpacity>
         </View>
       </View>
     </KeyboardAvoidingView>

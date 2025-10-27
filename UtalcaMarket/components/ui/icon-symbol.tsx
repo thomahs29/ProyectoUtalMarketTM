@@ -1,31 +1,57 @@
-// Fallback for using MaterialIcons on Android and web.
+// Fallback for using MaterialIcons, EvilIcons, and Ionicons on Android and web.
 
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
-import React from 'react';
-import { ComponentProps } from 'react';
+import { Entypo, EvilIcons, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { SymbolWeight } from 'expo-symbols';
+import React, { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+// Define the available icon sets
+type IconSet = 'MaterialIcons' | 'EvilIcons' | 'Ionicons' | 'Entypo';
+
+// Define the structure for an icon mapping: [IconSet, IconName]
+type IconMapValue = [IconSet, string];
+
+// Define the main mapping type from SF Symbol name to our custom mapping value
+type IconMapping = Record<string, IconMapValue>;
+
+// Define the type for a valid SF Symbol name based on our mapping
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ * Agrega tus mapeos de SF Symbols a los íconos de MaterialIcons, EvilIcons o Ionicons aquí.
+ * Para encontrar los nombres de los íconos:
+ * - MaterialIcons, EvilIcons, Ionicons: consulta el [Directorio de Íconos de Expo](https://icons.expo.fyi).
+ * - SF Symbols: utiliza la aplicación [SF Symbols](https://developer.apple.com/sf-symbols/).
+ *
+ * El formato es: 'sf-symbol-name': ['IconSet', 'icon-name-in-that-set']
  */
 const MAPPING = {
-  'house.fill': 'home',
-  'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
-  'person.fill': 'person',
-} as IconMapping;
+  // --- MaterialIcons ---
+  'house.fill': ['MaterialIcons', 'home'],
+  'paperplane.fill': ['MaterialIcons', 'send'],
+  'chevron.left.forwardslash.chevron.right': ['MaterialIcons', 'code'],
+  'chevron.right': ['MaterialIcons', 'chevron-right'],
+  'person.fill': ['MaterialIcons', 'person'],
+  'trash.fill': ['Ionicons', 'trash-outline'],
+  'gearshape.fill': ['Ionicons', 'settings-sharp'],
+  'checkmark.circle.fill': ['Ionicons', 'checkmark-circle'],
+  'plus.circle.fill': ['Ionicons', 'add-circle'],
+  'pencil': ['EvilIcons', 'pencil'],
+  'magnifyingglass': ['EvilIcons', 'search'],
+  'heart': ['EvilIcons', 'heart'],
+  'star': ['EvilIcons', 'star'],
+  'ellipsis': ['Ionicons', 'ellipsis-horizontal'],
+  'grid': ['Entypo', 'grid'],
+  'arrowshape.turn.up.left.fill': ['MaterialIcons', 'logout'],
+
+} as const satisfies IconMapping;
+
 
 /**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
+ * Un componente de ícono que utiliza SF Symbols nativos en iOS y los íconos
+ * de MaterialIcons, EvilIcons o Ionicons en Android y la web.
+ * Esto asegura una apariencia consistente entre plataformas y un uso óptimo de recursos.
+ * Los nombres (`name`) de los íconos se basan en SF Symbols y requieren un mapeo manual.
  */
 export function IconSymbol({
   name,
@@ -37,7 +63,30 @@ export function IconSymbol({
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight;
+  weight?: SymbolWeight; // 'weight' is kept for API consistency but not used by fallback components
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const mapping = MAPPING[name];
+
+  // Si no se encuentra un mapeo, no renderizar nada y advertir en la consola.
+  if (!mapping) {
+    console.warn(`[IconSymbol] No se encontró un mapeo para el SF Symbol: "${name}"`);
+    return null;
+  }
+
+  const [iconSet, iconName] = mapping;
+
+  // Renderiza el componente de ícono correcto basado en el mapeo
+  switch (iconSet) {
+    case 'MaterialIcons':
+      return <MaterialIcons color={color} size={size} name={iconName as ComponentProps<typeof MaterialIcons>['name']} style={style} />;
+    case 'EvilIcons':
+      return <EvilIcons color={color} size={size} name={iconName as ComponentProps<typeof EvilIcons>['name']} style={style} />;
+    case 'Ionicons':
+      return <Ionicons color={color} size={size} name={iconName as ComponentProps<typeof Ionicons>['name']} style={style} />;
+    case 'Entypo':
+      return <Entypo color={color} size={size} name={iconName as ComponentProps<typeof Entypo>['name']} style={style} />;
+    default:
+      // En caso de que se agregue un nuevo IconSet sin un case correspondiente.
+      return null;
+  }
 }
