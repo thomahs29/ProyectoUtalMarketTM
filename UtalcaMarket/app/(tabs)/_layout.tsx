@@ -42,12 +42,34 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="PubForm"
+        options={{
+          title: 'Publicar',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
+          href: user ? '/(tabs)/PubForm' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          href: user ? '/(tabs)/profile' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="publications"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="messages"
         options={{
           title: 'Mensajes',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
           href: user ? '/(tabs)/messages' : null,
-        }}
+        }}  
       />
     </Tabs>
   );
