@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  setLocalUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signOut: async () => {},
+  setLocalUser: () => {},
 });
 
 export const useAuth = () => {
@@ -94,6 +96,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Error al cerrar sesión:', error.message);
         throw error;
       }
+      setUser(null);
+      setSession(null);
     } catch (error) {
       console.error('Error durante el cierre de sesión:', error);
       throw error;
@@ -102,11 +106,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const setLocalUser = (newUser: User | null) => {
+    setUser(newUser);
+    setLoading(false);
+  };
+
   const value: AuthContextType = {
     session,
     user,
     loading,
     signOut,
+    setLocalUser,
   };
 
   return (

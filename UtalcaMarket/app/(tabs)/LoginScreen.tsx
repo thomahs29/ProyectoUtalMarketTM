@@ -45,13 +45,14 @@ const LoginScreen = () => {
 
       if (error) throw error;
 
-      // La navegación se manejará automáticamente por el AuthRedirect
-      console.log('Login exitoso:', data.user?.email);
-      
-      // Opcional: mostrar mensaje de éxito
-      Alert.alert('Éxito', 'Has iniciado sesión correctamente');
+      if (data.user) {
+        console.log('Login exitoso:', data.user.email, 'UUID:', data.user.id);
+        Alert.alert('Éxito', `Has iniciado sesión como ${data.user.email}`);
+        // La navegación se maneja automáticamente por el AuthRedirect
+      }
     } catch (error: any) {
-      Alert.alert('Error de inicio de sesión', error.message);
+      Alert.alert('Error de inicio de sesión', error.message || 'No pudimos iniciar sesión');
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }

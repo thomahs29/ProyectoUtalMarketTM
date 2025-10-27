@@ -148,24 +148,11 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro de que quieres cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar sesión',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error: any) {
-              Alert.alert('Error', 'No se pudo cerrar sesión: ' + error.message);
-            }
-          },
-        },
-      ]
-    );
+    try {
+      await signOut();
+    } catch (error: any) {
+      Alert.alert('Error', 'No se pudo cerrar sesión: ' + error.message);
+    }
   };
 
   if (loading) {
