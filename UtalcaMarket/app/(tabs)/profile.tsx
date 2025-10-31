@@ -1,11 +1,10 @@
+import { ModalDrawer } from '@/components/ModalDrawer';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProfileService } from '@/services/profileService';
 import { UserProfile } from '@/types/profile';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
-import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { ModalDrawer } from '@/components/ModalDrawer';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,

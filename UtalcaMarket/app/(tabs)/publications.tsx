@@ -1,10 +1,9 @@
 import CreatePublicationForm from '@/components/CreatePublicationForm';
+import { ModalDrawer } from '@/components/ModalDrawer';
 import PublicationsList from '@/components/PublicationsList';
 import { useAuth } from '@/contexts/AuthContext';
-import { ModalDrawer } from '@/components/ModalDrawer';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
-import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
     Modal,
