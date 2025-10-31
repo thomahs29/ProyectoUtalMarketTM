@@ -4,14 +4,14 @@ import { CATEGORIES, Category, CreatePublicationData } from '@/types/publication
 import { Picker } from '@react-native-picker/picker';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface CreatePublicationFormProps {
@@ -143,7 +143,7 @@ const CreatePublicationForm: React.FC<CreatePublicationFormProps> = ({ onPublica
           <Text style={styles.label}>Categoría *</Text>
           <View style={styles.pickerContainer}>
             <Picker<Category>
-              selectedValue={formData.category}
+              selectedValue={formData.category as Category}
               onValueChange={(value: Category) => updateField('category', value)}
               style={styles.picker}
               enabled={!loading}

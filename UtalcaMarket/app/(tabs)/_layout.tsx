@@ -1,67 +1,68 @@
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import React, { useState } from 'react';
+import { Tabs } from 'expo-router';
+import React from 'react';
 
-import AuthRedirect from '@/components/AuthRedirect';
-import DrawerContent from '@/components/DrawerContent';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
-import LoginScreen from './LoginScreen';
-import PublicationsScreen from './publications';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const Drawer = createDrawerNavigator();
-
-export default function DrawerLayout() {
+export default function TabLayout() {
+  const colorScheme = useColorScheme();
   const { user } = useAuth();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-
-  const handleCreatePublication = () => {
-    setShowCreateModal(true);
-  };
 
   return (
-    <AuthRedirect>
-      <Drawer.Navigator
-        drawerContent={(props) => (
-          <DrawerContent 
-            {...props} 
-            onCreatePublication={handleCreatePublication} 
-          />
-        )}
-        screenOptions={{
-          headerShown: false,
-          drawerStyle: {
-            backgroundColor: '#FFFFFF',
-            width: 280,
-          },
-          drawerType: 'front',
-          overlayColor: 'rgba(0, 0, 0, 0.5)',
-        }}
-      >
-        {user ? (
-          <>
-            <Drawer.Screen
-              name="publications"
-              options={{
-                drawerLabel: 'Publicaciones',
-              }}
-            >
-              {() => (
-                <PublicationsScreen 
-                  showCreateModal={showCreateModal} 
-                  setShowCreateModal={setShowCreateModal} 
-                />
-              )}
-            </Drawer.Screen>
-          </>
-        ) : (
-          <Drawer.Screen
-            name="LoginScreen"
-            component={LoginScreen}
-            options={{
-              drawerLabel: 'Iniciar Sesión',
-            }}
-          />
-        )}
-      </Drawer.Navigator>
-    </AuthRedirect>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        headerShown: false,
+      }}>
+    <Tabs.Screen
+      name="index"
+      options={{
+        title: 'Home',
+        tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+        href: user ? '/(tabs)' : null,
+      }}
+    />
+    <Tabs.Screen
+      name="LoginScreen"
+      options={{
+        title: 'Cuenta',
+        tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+        href: !user ? '/(tabs)/LoginScreen' : null,
+      }}
+    />
+    <Tabs.Screen
+      name="MisProductos"
+      options={{
+        title: 'Mis Productos',
+        tabBarIcon: ({ color }) => <IconSymbol size={28} name="grid" color={color} />,
+        href: user ? '/(tabs)/MisProductos' : null,
+      }}
+    />
+    <Tabs.Screen
+      name="messages"
+      options={{
+        title: 'Mensajes',
+        tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+        href: user ? '/(tabs)/messages' : null,
+      }}
+    />
+    <Tabs.Screen
+      name="explore"
+      options={{
+        title: 'Explore',
+        tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+        href: user ? '/(tabs)/explore' : null,
+      }}
+    />
+    <Tabs.Screen
+      name="RegisterScreen"
+      options={{
+        title: 'Registro',
+        href: null,
+      }}
+    />
+  </Tabs>
   );
 }
