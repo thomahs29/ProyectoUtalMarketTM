@@ -1,6 +1,6 @@
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { DrawerContentComponentProps } from '@react-navigation/drawer';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
     Alert,
@@ -11,139 +11,134 @@ import {
     View,
 } from 'react-native';
 
-interface DrawerContentProps extends DrawerContentComponentProps {
-  activeScreen?: string;
-  onCreatePublication?: () => void;
+interface DrawerContentProps {
+  navigation?: any;
+  onClose?: () => void;
 }
 
-const DrawerContent: React.FC<DrawerContentProps> = ({ 
-  activeScreen, 
-  onCreatePublication, 
-  navigation 
-}) => {
+const DrawerContent: React.FC<DrawerContentProps> = ({ navigation, onClose }) => {
   const { user, signOut } = useAuth();
+  const router = useRouter();
 
   const handleLogout = async () => {
     try {
       await signOut();
       Alert.alert('Éxito', 'Has cerrado sesión correctamente');
-      navigation.closeDrawer();
+      onClose?.();
+      navigation?.closeDrawer();
     } catch (error: any) {
       Alert.alert('Error', 'No se pudo cerrar la sesión: ' + error.message);
     }
   };
 
-  const menuItems = [
-    {
-      id: 'publications',
-      title: 'Publicaciones',
-      icon: 'house.fill',
-      screen: 'publications',
-      requireAuth: true,
-    },
-    {
-      id: 'create-publication',
-      title: 'Ingresar producto',
-      icon: 'add-circle.fill',
-      action: 'create',
-      requireAuth: true,
-    },
-    {
-      id: 'my-publications',
-      title: 'Mis Publicaciones',
-      icon: 'grid',
-      screen: 'publications',
-      requireAuth: true,
-      isSection: true,
-    },
-    {
-      id: 'profile',
-      title: 'Mi Perfil',
-      icon: 'person.fill',
-      screen: 'profile',
-      requireAuth: true,
-    },
-  ];
-
-  const navigateToScreen = (item: any) => {
-    if (item.action === 'create' && onCreatePublication) {
-      onCreatePublication();
-      navigation.closeDrawer();
-    } else if (item.screen === 'publications') {
-      navigation.navigate('publications');
-      navigation.closeDrawer();
-    }
+  const handleNavigate = (route: string) => {
+    router.push(route);
+    navigation?.closeDrawer();
   };
 
   return (
     <View style={styles.container}>
-      {/* Header del Drawer */}
-      <View style={styles.drawerHeader}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>UtalcaMarket</Text>
-        </View>
+      {/* Header del Drawer - Botón para ir a Home */}
+      <TouchableOpacity
+        style={styles.drawerHeader}
+        onPress={() => handleNavigate('/(tabs)')}
+      >
+        <Text style={styles.logoText}>UtalcaMarket</Text>
         
         {user && (
           <View style={styles.userInfo}>
             <Text style={styles.userEmail}>{user.email}</Text>
-            <Text style={styles.userLabel}>Usuario conectado</Text>
+            <Text style={styles.userLabel}>Conectado</Text>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
 
       {/* Contenido del Menú */}
       <ScrollView style={styles.menuContainer}>
         {user ? (
+          // Menú para usuarios autenticados
           <>
-            {/* Menú para usuarios autenticados */}
-            {menuItems.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[
-                  styles.menuItem,
-                  activeScreen === item.screen && styles.activeMenuItem,
-                ]}
-                onPress={() => navigateToScreen(item)}
-              >
-                <IconSymbol 
-                  name={item.icon as any} 
-                  size={20} 
-                  color={activeScreen === item.screen ? '#3B82F6' : '#6B7280'} 
-                />
-                <Text 
-                  style={[
-                    styles.menuItemText,
-                    activeScreen === item.screen && styles.activeMenuItemText,
-                  ]}
-                >
-                  {item.title}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigate('/(tabs)/profile')}
+            >
+              <Ionicons name="person" size={24} color="#fff" />
+              <Text style={styles.menuText}>Mi Perfil</Text>
+            </TouchableOpacity>
 
-            {/* Separador */}
-            <View style={styles.separator} />
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigate('/(tabs)/publications')}
+            >
+              <Ionicons name="add-circle" size={24} color="#fff" />
+              <Text style={styles.menuText}>Ingresar Producto</Text>
+            </TouchableOpacity>
 
-            {/* Botón de Logout */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <IconSymbol name={"logout" as any} size={20} color="#EF4444" />
-              <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigate('/(tabs)/MisProductos')}
+            >
+              <Ionicons name="grid" size={24} color="#fff" />
+              <Text style={styles.menuText}>Mis Productos</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigate('/(tabs)/messages')}
+            >
+              <Ionicons name="mail" size={24} color="#fff" />
+              <Text style={styles.menuText}>Mensajes</Text>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => Alert.alert('Opciones', 'Aún no configurado')}
+            >
+              <Ionicons name="settings" size={24} color="#fff" />
+              <Text style={styles.menuText}>Opciones</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.menuItem, styles.logoutBtn]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out" size={24} color="#ff4444" />
+              <Text style={[styles.menuText, { color: '#ff4444' }]}>Cerrar Sesión</Text>
             </TouchableOpacity>
           </>
         ) : (
-          <View style={styles.loginPrompt}>
-            <IconSymbol name={"person.circle" as any} size={48} color="#9CA3AF" />
-            <Text style={styles.loginPromptText}>
-              Inicia sesión para acceder a todas las funciones
-            </Text>
-          </View>
+          // Menú para usuarios NO autenticados
+          <>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigate('/(tabs)/LoginScreen')}
+            >
+              <Ionicons name="log-in" size={24} color="#fff" />
+              <Text style={styles.menuText}>Iniciar Sesión</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigate('/(tabs)/LoginScreen')}
+            >
+              <Ionicons name="person-add" size={24} color="#fff" />
+              <Text style={styles.menuText}>Registrarse</Text>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => Alert.alert('Opciones', 'Aún no configurado')}
+            >
+              <Ionicons name="settings" size={24} color="#fff" />
+              <Text style={styles.menuText}>Opciones</Text>
+            </TouchableOpacity>
+          </>
         )}
       </ScrollView>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>UtalcaMarket v1.0.0</Text>
-      </View>
     </View>
   );
 };
@@ -151,104 +146,73 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#3a3a4e',
   },
+
   drawerHeader: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+    backgroundColor: '#2a2a3e',
     padding: 20,
-    backgroundColor: '#F8FAFC',
+    paddingTop: 40,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#4a4a5e',
   },
-  logoContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
+
   logoText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 12,
   },
+
   userInfo: {
-    marginTop: 8,
+    marginTop: 12,
   },
+
   userEmail: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+    color: '#e0e0e0',
+    marginBottom: 4,
   },
+
   userLabel: {
     fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
+    color: '#999',
   },
+
   menuContainer: {
     flex: 1,
-    paddingTop: 8,
+    paddingTop: 16,
   },
+
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
     marginHorizontal: 8,
+    marginVertical: 4,
     borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  activeMenuItem: {
-    backgroundColor: '#EFF6FF',
-  },
-  menuItemText: {
+
+  menuText: {
+    marginLeft: 16,
     fontSize: 16,
-    color: '#374151',
-    marginLeft: 12,
+    color: '#fff',
     fontWeight: '500',
   },
-  activeMenuItemText: {
-    color: '#3B82F6',
-    fontWeight: '600',
-  },
-  separator: {
+
+  divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 8,
-    marginHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 16,
+    marginVertical: 12,
   },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginHorizontal: 8,
-    borderRadius: 8,
-  },
-  logoutButtonText: {
-    fontSize: 16,
-    color: '#EF4444',
-    marginLeft: 12,
-    fontWeight: '500',
-  },
-  loginPrompt: {
-    alignItems: 'center',
-    padding: 32,
-  },
-  loginPromptText: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  footer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#9CA3AF',
+
+  logoutBtn: {
+    marginTop: 12,
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
   },
 });
 
-export default DrawerContent;
+export { DrawerContent };

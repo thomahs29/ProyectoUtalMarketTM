@@ -1,5 +1,7 @@
+import { ModalDrawer } from '@/components/ModalDrawer';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -13,7 +15,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const HEADER_BG = '#e8f0fe';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -22,6 +26,8 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Si el usuario ya está autenticado, redirigir automáticamente
   React.useEffect(() => {
@@ -48,7 +54,8 @@ const LoginScreen = () => {
       if (data.user) {
         console.log('Login exitoso:', data.user.email, 'UUID:', data.user.id);
         Alert.alert('Éxito', `Has iniciado sesión como ${data.user.email}`);
-        // La navegación se maneja automáticamente por el AuthRedirect
+        // Navegar a la página principal
+        router.push('/(tabs)');
       }
     } catch (error: any) {
       Alert.alert('Error de inicio de sesión', error.message || 'No pudimos iniciar sesión');
@@ -59,10 +66,29 @@ const LoginScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    <View style={styles.container}>
+      {/* Modal Drawer */}
+      <ModalDrawer 
+        visible={drawerVisible} 
+        onClose={() => setDrawerVisible(false)} 
+      />
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: HEADER_BG }]}>
+        <TouchableOpacity
+          style={styles.menuBtn}
+          onPress={() => setDrawerVisible(true)}
+        >
+          <Ionicons name="menu" size={28} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Cuenta</Text>
+        <View style={{ width: 28 }} />
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.innerContainer}
+      >
       <View style={styles.content}>
         <Text style={styles.title}>Bienvenido a</Text>
         <Text style={styles.title}>UtalcaMarket</Text>
@@ -123,7 +149,8 @@ const LoginScreen = () => {
           </Link>
         </View>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -131,6 +158,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#A5B4FC',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 10,
+    backgroundColor: HEADER_BG,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  menuBtn: {
+    width: 28,
+    height: 28,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1c1b1f',
+  },
+  innerContainer: {
+    flex: 1,
   },
   content: {
     flex: 1,

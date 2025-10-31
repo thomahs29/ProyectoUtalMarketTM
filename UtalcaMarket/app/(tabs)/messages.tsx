@@ -8,11 +8,19 @@ import {
   unsubscribeFromMessages,
   uploadChatMedia,
 } from '@/utils/messagingService';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { Audio, Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ModalDrawer } from '@/components/ModalDrawer';
+
+type DrawerNavProp = DrawerNavigationProp<any>;
+
+const HEADER_BG = '#e8f0fe';
 
 interface Message {
   id: string;
@@ -113,6 +121,9 @@ function AudioPlayer({ audioUri }: { audioUri: string }) {
 
 export default function MessagesScreen() {
   const { user } = useAuth();
+  // const navigation = useNavigation<DrawerNavProp>();
+  const insets = useSafeAreaInsets();
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -506,8 +517,6 @@ export default function MessagesScreen() {
               disabled={sendingMessage}
             >
               <MaterialIcons name="videocam" size={24} color="#007AFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
               style={styles.mediaButton}
               onPress={handlePickAudio}
               disabled={sendingMessage}
@@ -628,12 +637,21 @@ export default function MessagesScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: HEADER_BG }]}> 
+        <TouchableOpacity
+          style={styles.menuBtn}
+          onPress={() => setDrawerVisible(true)}
+        >
+          <Ionicons name="menu" size={28} color="#333" />
+        </TouchableOpacity>
         <Text style={styles.title}>Mensajes</Text>
         <TouchableOpacity>
           <MaterialIcons name="add-circle-outline" size={28} color="#333" />
         </TouchableOpacity>
       </View>
+
+      {/* ModalDrawer para menú lateral */}
+      <ModalDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
 
       {/* Chats List */}
       <FlatList
@@ -681,18 +699,29 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  menuBtn: {
+    width: 28,
+    height: 28,
+    marginRight: 8,
   },
   title: {
-    fontSize: 24,
+    flex: 1,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'center',
   },
   chatItem: {
     flexDirection: 'row',

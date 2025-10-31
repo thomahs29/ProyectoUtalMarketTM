@@ -1,16 +1,18 @@
 // app/(tabs)/index.tsx
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  ActivityIndicator,
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ModalDrawer } from '@/components/ModalDrawer';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { PublicationService } from '@/services/publicationService';
@@ -27,6 +29,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Cargar publicaciones al montar el componente
   useEffect(() => {
@@ -67,6 +70,11 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Modal Drawer */}
+      <ModalDrawer 
+        visible={drawerVisible} 
+        onClose={() => setDrawerVisible(false)} 
+      />
 
       {/* Status bar acorde al header */}
       <StatusBar style="dark" backgroundColor={HEADER_BG} />
@@ -83,8 +91,15 @@ export default function HomeScreen() {
           <>
             {/* Header custom respetando notch */}
             <ThemedView style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: HEADER_BG }]}>
-              <TouchableOpacity style={styles.headerBtn} onPress={() => { /* TODO: abrir drawer */ }} />
-              <ThemedText type="title" style={styles.headerTitle}>UtalcaMarket</ThemedText>
+              <TouchableOpacity 
+                style={styles.headerBtn}
+                onPress={() => setDrawerVisible(true)}
+              >
+                <Ionicons name="menu" size={28} color="#333" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/(tabs)')}>
+                <ThemedText type="title" style={styles.headerTitle}>UtalcaMarket</ThemedText>
+              </TouchableOpacity>
               <View style={styles.headerActions}>
                 <View style={styles.dot} />
                 <View style={[styles.dot, { opacity: 0.6 }]} />
@@ -95,7 +110,7 @@ export default function HomeScreen() {
             <View style={styles.heroRow}>
               <TouchableOpacity 
                 style={styles.heroCard} 
-                onPress={() => router.push('/MisProductos')}
+                onPress={() => router.push('/(tabs)/MisProductos')}
               >
                 <ThemedView style={styles.heroCardContent}>
                   <ThemedText type="title" style={{ marginBottom: 6 }}>

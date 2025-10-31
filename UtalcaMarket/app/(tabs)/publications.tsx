@@ -1,16 +1,24 @@
 import CreatePublicationForm from '@/components/CreatePublicationForm';
-import CustomHeader from '@/components/CustomHeader';
 import PublicationsList from '@/components/PublicationsList';
 import { useAuth } from '@/contexts/AuthContext';
+import { ModalDrawer } from '@/components/ModalDrawer';
+import { Ionicons } from '@expo/vector-icons';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
-  Modal,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+type DrawerNavProp = DrawerNavigationProp<any>;
+
+const HEADER_BG = '#e8f0fe';
 
 interface PublicationsScreenProps {
   showCreateModal?: boolean;
@@ -25,6 +33,9 @@ export default function PublicationsScreen({
   const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
+  // const navigation = useNavigation<DrawerNavProp>();
+  const insets = useSafeAreaInsets();
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Use external modal state if provided, otherwise use internal state
   const showCreateModal = externalShowCreateModal !== undefined ? externalShowCreateModal : internalShowCreateModal;
@@ -52,7 +63,18 @@ export default function PublicationsScreen({
 
   return (
     <SafeAreaView style={styles.container}>
-      <CustomHeader />
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: HEADER_BG }]}> 
+        <TouchableOpacity
+          style={styles.menuBtn}
+          onPress={() => setDrawerVisible(true)}
+        >
+          <Ionicons name="menu" size={28} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Publicaciones</Text>
+        <View style={{ width: 28 }} />
+      </View>
+      {/* ModalDrawer para menú lateral */}
+      <ModalDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -111,11 +133,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  menuBtn: {
+    width: 28,
+    height: 28,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1c1b1f',
   },
   title: {
     fontSize: 24,

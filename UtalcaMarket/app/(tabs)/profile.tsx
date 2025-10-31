@@ -1,7 +1,11 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { ProfileService } from '@/services/profileService';
 import { UserProfile } from '@/types/profile';
+import { Ionicons } from '@expo/vector-icons';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import { ModalDrawer } from '@/components/ModalDrawer';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,9 +20,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+type DrawerNavProp = DrawerNavigationProp<any>;
+
+const HEADER_BG = '#e8f0fe';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  // const navigation = useNavigation<DrawerNavProp>();
+  const insets = useSafeAreaInsets();
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -168,7 +180,13 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: HEADER_BG }]}> 
+          <TouchableOpacity
+            style={styles.menuBtn}
+            onPress={() => setDrawerVisible(true)}
+          >
+            <Ionicons name="menu" size={28} color="#333" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Mi Perfil</Text>
           {!isEditing && (
             <TouchableOpacity
@@ -178,7 +196,12 @@ export default function ProfileScreen() {
               <Text style={styles.editButtonText}>Editar</Text>
             </TouchableOpacity>
           )}
+          {isEditing && (
+            <View style={{ width: 28 }} />
+          )}
         </View>
+        {/* ModalDrawer para menú lateral */}
+        <ModalDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
 
         {/* Avatar */}
         <View style={styles.avatarSection}>
@@ -362,18 +385,28 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  menuBtn: {
+    width: 28,
+    height: 28,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
     color: '#1F2937',
+    textAlign: 'center',
   },
   editButton: {
     paddingHorizontal: 16,

@@ -1,7 +1,10 @@
 // app/(tabs)/MisProductos.tsx
+import { ModalDrawer } from '@/components/ModalDrawer';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import { PublicationService } from '@/services/publicationService';
 import { Publication } from '@/types/publication';
+import { supabase } from '@/utils/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -13,13 +16,17 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '@/utils/supabase';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const HEADER_BG = '#e8f0fe';
+const PLACEHOLDER = '#c2d4e8';
 
 export default function MisProductosScreen() {
   const [productos, setProductos] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Cargar productos del usuario
   useEffect(() => {
@@ -84,7 +91,7 @@ export default function MisProductosScreen() {
   const handleEditar = (producto: Publication) => {
     // Navegar a pantalla de edición pasando el producto como parámetro
     router.push({
-      pathname: '/EditProducto',
+      pathname: '/(tabs)/publications',
       params: {
         id: producto.id,
         title: producto.title,
@@ -96,7 +103,7 @@ export default function MisProductosScreen() {
   };
 
   const handleAgregar = () => {
-    router.push('/publications');
+    router.push('/(tabs)/publications');
   };
 
   const renderProducto = ({ item }: { item: Publication }) => (
@@ -161,11 +168,17 @@ export default function MisProductosScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Modal Drawer */}
+      <ModalDrawer 
+        visible={drawerVisible} 
+        onClose={() => setDrawerVisible(false)} 
+      />
+
       {/* Header */}
-      <View style={styles.header}>
+      <ThemedView style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: HEADER_BG }]}>
         <TouchableOpacity
           style={styles.menuBtn}
-          onPress={() => Alert.alert('Menú', 'Abrir menú lateral')}
+          onPress={() => setDrawerVisible(true)}
         >
           <Ionicons name="menu" size={28} color="#333" />
         </TouchableOpacity>
@@ -180,7 +193,7 @@ export default function MisProductosScreen() {
         >
           <Ionicons name="add-circle" size={32} color="#4CAF50" />
         </TouchableOpacity>
-      </View>
+      </ThemedView>
 
       {/* Lista de productos */}
       {loading && productos.length === 0 ? (
