@@ -1,8 +1,12 @@
 // app/(tabs)/MisProductos.tsx
 import { ThemedText } from '@/components/themed-text';
+import { PublicationService } from '@/services/publicationService';
+import { Publication } from '@/types/publication';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     FlatList,
     StyleSheet,
@@ -10,56 +14,97 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Tipo para los productos
-type Producto = {
-  id: string;
-  titulo: string;
-  precio: number;
-  imagen?: string;
-};
-
-// Datos de ejemplo (simulando productos del vendedor)
-const PRODUCTOS_INICIALES: Producto[] = [
-  { id: '1', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '2', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '3', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '4', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '5', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '6', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-];
+import { supabase } from '@/utils/supabase';
 
 export default function MisProductosScreen() {
-  const [productos, setProductos] = useState<Producto[]>(PRODUCTOS_INICIALES);
+  const [productos, setProductos] = useState<Publication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  const handleEliminar = (id: string) => {
+  // Cargar productos del usuario
+  useEffect(() => {
+    loadUserPublications();
+    subscribeToPublications();
+  }, []);
+
+  const loadUserPublications = async () => {
+    try {
+      setLoading(true);
+      const data = await PublicationService.getUserPublications();
+      setProductos(data);
+    } catch (error) {
+      console.error('Error loading publications:', error);
+      Alert.alert('Error', 'No se pudieron cargar tus productos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Suscribirse a cambios en tiempo real
+  const subscribeToPublications = () => {
+    const subscription = supabase
+      .channel('user-publications')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'publications' },
+        (payload) => {
+          loadUserPublications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  };
+
+  const handleEliminar = (id: string, titulo: string) => {
     Alert.alert(
       'Eliminar Producto',
-      '¿Estás seguro que deseas eliminar este producto?',
+      `¿Estás seguro que deseas eliminar "${titulo}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => {
-            setProductos(productos.filter(p => p.id !== id));
+          onPress: async () => {
+            try {
+              await PublicationService.deletePublication(id);
+              setProductos(productos.filter(p => p.id !== id));
+              Alert.alert('Éxito', 'Producto eliminado correctamente');
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo eliminar el producto');
+            }
           },
         },
       ]
     );
   };
 
-  const handleEditar = (id: string) => {
-    Alert.alert('Editar Producto', `Editando producto ID: ${id}`);
-    // TODO: Navegar a pantalla de edición
+  const handleEditar = (producto: Publication) => {
+    // Navegar a pantalla de edición pasando el producto como parámetro
+    router.push({
+      pathname: '/EditProducto',
+      params: {
+        id: producto.id,
+        title: producto.title,
+        description: producto.description,
+        price: producto.price.toString(),
+        category: producto.category,
+      },
+    });
   };
 
-  const renderProducto = ({ item }: { item: Producto }) => (
+  const handleAgregar = () => {
+    router.push('/publications');
+  };
+
+  const renderProducto = ({ item }: { item: Publication }) => (
     <View style={styles.card}>
       {/* Botón Eliminar */}
       <TouchableOpacity
         style={styles.deleteBtn}
-        onPress={() => handleEliminar(item.id)}
+        onPress={() => handleEliminar(item.id, item.title)}
       >
         <Ionicons name="close-circle" size={28} color="#ff4444" />
       </TouchableOpacity>
@@ -67,7 +112,7 @@ export default function MisProductosScreen() {
       {/* Botón Editar */}
       <TouchableOpacity
         style={styles.editBtn}
-        onPress={() => handleEditar(item.id)}
+        onPress={() => handleEditar(item)}
       >
         <Ionicons name="create-outline" size={24} color="#333" />
       </TouchableOpacity>
@@ -80,12 +125,37 @@ export default function MisProductosScreen() {
       {/* Información del producto */}
       <View style={styles.cardInfo}>
         <ThemedText style={styles.precio}>
-          ${item.precio.toLocaleString('es-CL')}
+          ${item.price.toLocaleString('es-CL')}
         </ThemedText>
         <ThemedText style={styles.titulo} numberOfLines={2}>
-          {item.titulo}
+          {item.title}
+        </ThemedText>
+        <ThemedText style={styles.categoria}>
+          {item.category}
         </ThemedText>
       </View>
+    </View>
+  );
+
+  const emptyComponent = loading ? (
+    <View style={styles.centerContainer}>
+      <ActivityIndicator size="large" color="#007AFF" />
+      <ThemedText style={{ marginTop: 12 }}>Cargando tus productos...</ThemedText>
+    </View>
+  ) : (
+    <View style={styles.centerContainer}>
+      <Ionicons name="cube-outline" size={64} color="#ccc" />
+      <ThemedText style={{ marginTop: 12, fontSize: 16 }}>
+        No tienes productos publicados
+      </ThemedText>
+      <TouchableOpacity
+        style={styles.addBtn}
+        onPress={handleAgregar}
+      >
+        <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>
+          Crear producto
+        </ThemedText>
+      </TouchableOpacity>
     </View>
   );
 
@@ -99,37 +169,36 @@ export default function MisProductosScreen() {
         >
           <Ionicons name="menu" size={28} color="#333" />
         </TouchableOpacity>
-        
+
         <ThemedText type="title" style={styles.headerTitle}>
           Mis Productos
         </ThemedText>
 
         <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => Alert.alert('Agregar', 'Agregar nuevo producto')}
+          style={styles.addHeaderBtn}
+          onPress={handleAgregar}
         >
-          <Ionicons name="add-circle" size={28} color="#4CAF50" />
+          <Ionicons name="add-circle" size={32} color="#4CAF50" />
         </TouchableOpacity>
       </View>
 
-      {/* Grid de productos */}
-      <FlatList
-        data={productos}
-        renderItem={renderProducto}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cube-outline" size={64} color="#ccc" />
-            <ThemedText style={styles.emptyText}>
-              No tienes productos publicados
-            </ThemedText>
-          </View>
-        }
-      />
+      {/* Lista de productos */}
+      {loading && productos.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <ThemedText style={{ marginTop: 12 }}>Cargando tus productos...</ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={productos}
+          renderItem={renderProducto}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.column}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={emptyComponent}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -140,123 +209,115 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
 
-  // Header
   header: {
-    backgroundColor: '#fff',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#eee',
+  },
+
+  menuBtn: {
+    padding: 8,
+  },
+
+  addHeaderBtn: {
+    padding: 8,
+  },
+
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+
+  addBtn: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+  },
+
+  listContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 12,
+  },
+
+  column: {
+    gap: 12,
+  },
+
+  card: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-  menuBtn: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-  },
-  addBtn: {
-    padding: 4,
-  },
 
-  // Lista
-  listContent: {
-    padding: 12,
-  },
-  row: {
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-
-  // Tarjeta de producto
-  card: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginHorizontal: 6,
-    overflow: 'visible',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-
-  // Botones de acción
   deleteBtn: {
     position: 'absolute',
-    top: -8,
-    left: -8,
+    top: 8,
+    left: 8,
     zIndex: 10,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 14,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  editBtn: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    zIndex: 10,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 4,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
 
-  // Imagen
+  editBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 4,
+  },
+
   imagePlaceholder: {
-    width: '100%',
-    aspectRatio: 4 / 3,
+    height: 150,
     backgroundColor: '#e0e0e0',
     justifyContent: 'center',
     alignItems: 'center',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
   },
 
-  // Información
   cardInfo: {
     padding: 12,
-    gap: 4,
   },
+
   precio: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
-  },
-  titulo: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 18,
+    color: '#2ecc71',
+    marginBottom: 4,
   },
 
-  // Estado vacío
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
+  titulo: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
   },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 16,
+
+  categoria: {
+    fontSize: 12,
     color: '#999',
   },
 });
