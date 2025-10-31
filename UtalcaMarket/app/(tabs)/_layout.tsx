@@ -11,11 +11,13 @@ export default function TabLayout() {
   const { user } = useAuth();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-      }}>
+    <AuthRedirect>
+  <Tabs
+    screenOptions={{
+      tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+      headerShown: false,
+      tabBarButton: HapticTab,
+    }}>
     <Tabs.Screen
       name="index"
       options={{
@@ -64,5 +66,6 @@ export default function TabLayout() {
       }}
     />
   </Tabs>
+</AuthRedirect>
   );
 }
