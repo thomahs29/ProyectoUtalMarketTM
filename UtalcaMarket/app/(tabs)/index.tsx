@@ -1,43 +1,69 @@
 // app/(tabs)/index.tsx
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-
-// Definición de tipos
-type Item = {
-  id: string;
-  title: string;
-  subtitle: string;
-};
+import { PublicationService } from '@/services/publicationService';
+import { Publication } from '@/types/publication';
+import { supabase } from '@/utils/supabase';
 
 // Constantes de colores
 const HEADER_BG = '#e8f0fe';
 const PLACEHOLDER = '#c2d4e8';
 const CARD_FOOTER = '#f9fbfd';
 
-// Datos de ejemplo
-const MOCK: Item[] = [
-  { id: '1', title: 'Producto 1', subtitle: 'Descripción del producto 1' },
-  { id: '2', title: 'Producto 2', subtitle: 'Descripción del producto 2' },
-  { id: '3', title: 'Producto 3', subtitle: 'Descripción del producto 3' },
-  { id: '4', title: 'Producto 4', subtitle: 'Descripción del producto 4' },
-  { id: '5', title: 'Producto 5', subtitle: 'Descripción del producto 5' },
-  { id: '6', title: 'Producto 6', subtitle: 'Descripción del producto 6' },
-];
-
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [publications, setPublications] = useState<Publication[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar publicaciones al montar el componente
+  useEffect(() => {
+    loadPublications();
+    subscribeToPublications();
+  }, []);
+
+  const loadPublications = async () => {
+    try {
+      setLoading(true);
+      const data = await PublicationService.getAllPublications();
+      setPublications(data);
+    } catch (error) {
+      console.error('Error loading publications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Suscribirse a cambios en tiempo real
+  const subscribeToPublications = () => {
+    const subscription = supabase
+      .channel('publications')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'publications' },
+        (payload) => {
+          // Recargar publicaciones cuando hay cambios
+          loadPublications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -47,7 +73,7 @@ export default function HomeScreen() {
 
       {/* Lista principal; usamos ListHeaderComponent para hero/encabezado */}
       <FlatList
-        data={MOCK}
+        data={publications}
         keyExtractor={(it) => it.id}
         numColumns={2}
         columnWrapperStyle={styles.column}
@@ -91,13 +117,32 @@ export default function HomeScreen() {
             <View style={styles.divider} />
           </>
         }
-        renderItem={({ item }) => <Card item={item} />}
+        renderItem={({ item }) => <Card publication={item} />}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#007AFF" />
+              <ThemedText style={{ marginTop: 12 }}>Cargando publicaciones...</ThemedText>
+            </View>
+          ) : (
+            <View style={styles.centerContainer}>
+              <ThemedText>No hay publicaciones disponibles</ThemedText>
+            </View>
+          )
+        }
       />
     </SafeAreaView>
   );
 }
 
-function Card({ item }: { item: Item }) {
+function Card({ publication }: { publication: Publication }) {
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP'
+    }).format(price);
+  };
+
   return (
     <ThemedView style={styles.card}>
       <View style={styles.cardImage}>
@@ -106,8 +151,13 @@ function Card({ item }: { item: Item }) {
       </View>
 
       <ThemedView style={styles.cardFooter}>
-        <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
-        <ThemedText style={{ opacity: 0.7 }}>{item.subtitle}</ThemedText>
+        <ThemedText type="defaultSemiBold" numberOfLines={1}>{publication.title}</ThemedText>
+        <ThemedText style={{ opacity: 0.7, fontSize: 12, marginVertical: 4 }} numberOfLines={2}>
+          {publication.description}
+        </ThemedText>
+        <ThemedText type="defaultSemiBold" style={{ color: '#2ecc71', marginTop: 6 }}>
+          {formatPrice(publication.price)}
+        </ThemedText>
       </ThemedView>
     </ThemedView>
   );
@@ -122,6 +172,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   column: { gap: 12 },
+
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
 
   // Header
   header: {
