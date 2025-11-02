@@ -165,11 +165,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 10,
     backgroundColor: HEADER_BG,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
   },
   menuBtn: {
     width: 28,

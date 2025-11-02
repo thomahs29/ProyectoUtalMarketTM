@@ -2,21 +2,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from 'react-native';
 
 interface DrawerContentProps {
   navigation?: any;
   onClose?: () => void;
 }
 
-const DrawerContent: React.FC<DrawerContentProps> = ({ navigation, onClose }) => {
+const DrawerContent: React.FC<DrawerContentProps> = ({ onClose }) => {
   const { user, signOut } = useAuth();
   const router = useRouter();
 
@@ -25,118 +19,52 @@ const DrawerContent: React.FC<DrawerContentProps> = ({ navigation, onClose }) =>
       await signOut();
       Alert.alert('Éxito', 'Has cerrado sesión correctamente');
       onClose?.();
-      navigation?.closeDrawer();
     } catch (error: any) {
       Alert.alert('Error', 'No se pudo cerrar la sesión: ' + error.message);
     }
   };
 
-  const handleNavigate = (route: string) => {
-    router.push(route);
-    navigation?.closeDrawer();
+  const navigateTo = (route: string) => {
+    router.push(route as any);
+    onClose?.();
   };
+
+  const menuItems = user ? [
+    { icon: 'person', label: 'Mi Perfil', route: '/(tabs)/profile' },
+    { icon: 'add-circle', label: 'Ingresar Producto', route: '/(tabs)/publications' },
+    { icon: 'grid', label: 'Mis Productos', route: '/(tabs)/MisProductos' },
+    { icon: 'mail', label: 'Mensajes', route: '/(tabs)/messages' },
+    { icon: 'settings', label: 'Opciones', route: null },
+  ] : [
+    { icon: 'log-in', label: 'Iniciar Sesión', route: '/(tabs)/LoginScreen' },
+    { icon: 'person-add', label: 'Registrarse', route: '/(tabs)/LoginScreen' },
+    { icon: 'settings', label: 'Opciones', route: null },
+  ];
 
   return (
     <View style={styles.container}>
-      {/* Header del Drawer - Botón para ir a Home */}
-      <TouchableOpacity
-        style={styles.drawerHeader}
-        onPress={() => handleNavigate('/(tabs)')}
-      >
-        <Text style={styles.logoText}>UtalcaMarket</Text>
+      <Pressable style={styles.header} onPress={() => navigateTo('/(tabs)')}>
+        <Text style={styles.logo}>UtalcaMarket</Text>
+        {user && <Text style={styles.userEmail}>{user.email}</Text>}
+      </Pressable>
+
+      <ScrollView style={styles.scrollView}>
+        {menuItems.map((item, idx) => (
+          <Pressable
+            key={idx}
+            style={styles.menuItem}
+            onPress={() => item.route ? navigateTo(item.route) : Alert.alert('Opciones', 'Aún no configurado')}
+          >
+            <Ionicons name={item.icon as any} size={20} color="#fff" />
+            <Text style={styles.menuLabel}>{item.label}</Text>
+          </Pressable>
+        ))}
         
         {user && (
-          <View style={styles.userInfo}>
-            <Text style={styles.userEmail}>{user.email}</Text>
-            <Text style={styles.userLabel}>Conectado</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      {/* Contenido del Menú */}
-      <ScrollView style={styles.menuContainer}>
-        {user ? (
-          // Menú para usuarios autenticados
-          <>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate('/(tabs)/profile')}
-            >
-              <Ionicons name="person" size={24} color="#fff" />
-              <Text style={styles.menuText}>Mi Perfil</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate('/(tabs)/publications')}
-            >
-              <Ionicons name="add-circle" size={24} color="#fff" />
-              <Text style={styles.menuText}>Ingresar Producto</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate('/(tabs)/MisProductos')}
-            >
-              <Ionicons name="grid" size={24} color="#fff" />
-              <Text style={styles.menuText}>Mis Productos</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate('/(tabs)/messages')}
-            >
-              <Ionicons name="mail" size={24} color="#fff" />
-              <Text style={styles.menuText}>Mensajes</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => Alert.alert('Opciones', 'Aún no configurado')}
-            >
-              <Ionicons name="settings" size={24} color="#fff" />
-              <Text style={styles.menuText}>Opciones</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.menuItem, styles.logoutBtn]}
-              onPress={handleLogout}
-            >
-              <Ionicons name="log-out" size={24} color="#ff4444" />
-              <Text style={[styles.menuText, { color: '#ff4444' }]}>Cerrar Sesión</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          // Menú para usuarios NO autenticados
-          <>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate('/(tabs)/LoginScreen')}
-            >
-              <Ionicons name="log-in" size={24} color="#fff" />
-              <Text style={styles.menuText}>Iniciar Sesión</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => handleNavigate('/(tabs)/LoginScreen')}
-            >
-              <Ionicons name="person-add" size={24} color="#fff" />
-              <Text style={styles.menuText}>Registrarse</Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => Alert.alert('Opciones', 'Aún no configurado')}
-            >
-              <Ionicons name="settings" size={24} color="#fff" />
-              <Text style={styles.menuText}>Opciones</Text>
-            </TouchableOpacity>
-          </>
+          <Pressable style={styles.logoutItem} onPress={handleLogout}>
+            <Ionicons name="log-out" size={20} color="#ff4444" />
+            <Text style={styles.logoutLabel}>Cerrar Sesión</Text>
+          </Pressable>
         )}
       </ScrollView>
     </View>
@@ -148,70 +76,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#3a3a4e',
   },
-
-  drawerHeader: {
+  header: {
     backgroundColor: '#2a2a3e',
-    padding: 20,
-    paddingTop: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: '#4a4a5e',
+    padding: 16,
+    paddingTop: 32,
   },
-
-  logoText: {
-    fontSize: 24,
+  logo: {
+    fontSize: 22,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-
-  userInfo: {
-    marginTop: 12,
-  },
-
   userEmail: {
-    fontSize: 14,
-    color: '#e0e0e0',
-    marginBottom: 4,
-  },
-
-  userLabel: {
     fontSize: 12,
     color: '#999',
   },
-
-  menuContainer: {
+  scrollView: {
     flex: 1,
-    paddingTop: 16,
   },
-
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     marginHorizontal: 8,
     marginVertical: 4,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-
-  menuText: {
-    marginLeft: 16,
-    fontSize: 16,
+  menuLabel: {
+    marginLeft: 12,
+    fontSize: 14,
     color: '#fff',
     fontWeight: '500',
   },
-
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginHorizontal: 16,
-    marginVertical: 12,
+  logoutItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 8,
+    marginVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-
-  logoutBtn: {
-    marginTop: 12,
-    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+  logoutLabel: {
+    marginLeft: 12,
+    fontSize: 14,
+    color: '#ff4444',
+    fontWeight: '500',
   },
 });
 

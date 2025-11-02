@@ -137,6 +137,11 @@ export default function MessagesScreen() {
   const [expandedAudio, setExpandedAudio] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  
+  const headerStyle = {
+    paddingTop: insets.top + 8,
+    backgroundColor: HEADER_BG,
+  };
 
   // Cargar conversaciones cuando se monta el componente
   const loadConversations = useCallback(async () => {
@@ -375,7 +380,7 @@ export default function MessagesScreen() {
 
   if (loading && !selectedChat) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
@@ -471,8 +476,8 @@ export default function MessagesScreen() {
           contentContainerStyle={styles.messagesList}
           inverted={false}
           ListEmptyComponent={
-            <View style={{ justifyContent: 'center', alignItems: 'center', paddingVertical: 20 }}>
-              <Text style={{ color: '#999' }}>Sin mensajes aún</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Sin mensajes aún</Text>
             </View>
           }
         />
@@ -511,12 +516,16 @@ export default function MessagesScreen() {
             >
               <MaterialIcons name="image" size={24} color="#007AFF" />
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.mediaButton}
               onPress={handlePickVideo}
               disabled={sendingMessage}
             >
               <MaterialIcons name="videocam" size={24} color="#007AFF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.mediaButton}
               onPress={handlePickAudio}
               disabled={sendingMessage}
@@ -538,7 +547,7 @@ export default function MessagesScreen() {
             />
             <TouchableOpacity 
               onPress={handleSendMessage} 
-              style={[styles.sendButton, sendingMessage && { opacity: 0.6 }]}
+              style={[styles.sendButton, sendingMessage && styles.sendButtonDisabled]}
               disabled={sendingMessage}
             >
               {sendingMessage ? (
@@ -637,7 +646,7 @@ export default function MessagesScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: HEADER_BG }]}> 
+      <View style={[styles.header, headerStyle]}> 
         <TouchableOpacity
           style={styles.menuBtn}
           onPress={() => setDrawerVisible(true)}
@@ -697,6 +706,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center' as any,
+    alignItems: 'center' as any,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -705,11 +720,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
   },
   menuBtn: {
     width: 28,
@@ -842,10 +852,17 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   messageTime: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: 12,
     marginTop: 4,
-    textAlign: 'right',
+    opacity: 0.7,
+  },
+  emptyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyText: {
+    color: '#999',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -873,6 +890,9 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    opacity: 0.6,
   },
   // Nuevos estilos para media
   inputSection: {
