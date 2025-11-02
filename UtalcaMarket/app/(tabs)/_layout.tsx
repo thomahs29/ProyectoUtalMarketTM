@@ -136,6 +136,14 @@ export default function TabLayout() {
 
                     <TouchableOpacity 
                       style={styles.drawerItem}
+                      onPress={() => navigateTo('/(tabs)/PubForm')}
+                    >
+                      <IconSymbol name={"plus.circle.fill" as any} size={20} color="#6B7280" />
+                      <Text style={styles.drawerItemText}>Agregar Producto</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={styles.drawerItem}
                       onPress={() => navigateTo('/(tabs)/MisProductos')}
                     >
                       <IconSymbol name={"grid" as any} size={20} color="#6B7280" />

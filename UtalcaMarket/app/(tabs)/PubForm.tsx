@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
   },
   formContainer: {
-    paddingTop: 70,
+    paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 0,
   },
