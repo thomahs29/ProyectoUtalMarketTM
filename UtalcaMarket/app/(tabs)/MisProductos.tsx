@@ -91,27 +91,6 @@ export default function MisProductosScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.menuBtn}
-          onPress={() => Alert.alert('Menú', 'Abrir menú lateral')}
-        >
-          <Ionicons name="menu" size={28} color="#333" />
-        </TouchableOpacity>
-        
-        <ThemedText type="title" style={styles.headerTitle}>
-          Mis Productos
-        </ThemedText>
-
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => Alert.alert('Agregar', 'Agregar nuevo producto')}
-        >
-          <Ionicons name="add-circle" size={28} color="#4CAF50" />
-        </TouchableOpacity>
-      </View>
-
       {/* Grid de productos */}
       <FlatList
         data={productos}

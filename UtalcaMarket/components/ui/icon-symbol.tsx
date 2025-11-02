@@ -43,7 +43,9 @@ const MAPPING = {
   'ellipsis': ['Ionicons', 'ellipsis-horizontal'],
   'grid': ['Entypo', 'grid'],
   'arrowshape.turn.up.left.fill': ['MaterialIcons', 'logout'],
-
+  'line.horizontal.3': ['MaterialIcons', 'menu'],
+  'xmark': ['Ionicons', 'close'],
+  'power': ['Ionicons', 'power'],
 } as const satisfies IconMapping;
 
 
