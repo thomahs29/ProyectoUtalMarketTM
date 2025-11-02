@@ -5,6 +5,8 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import AuthRedirect from '@/components/AuthRedirect';
+import { HapticTab} from '@/components/haptic-tab';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
