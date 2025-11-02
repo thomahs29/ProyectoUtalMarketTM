@@ -1,38 +1,51 @@
 // app/(tabs)/MisProductos.tsx
 import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Alert,
     FlatList,
     StyleSheet,
     TouchableOpacity,
     View,
+    ActivityIndicator,
+    RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Tipo para los productos
-type Producto = {
-  id: string;
-  titulo: string;
-  precio: number;
-  imagen?: string;
-};
-
-// Datos de ejemplo (simulando productos del vendedor)
-const PRODUCTOS_INICIALES: Producto[] = [
-  { id: '1', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '2', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '3', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '4', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '5', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-  { id: '6', titulo: 'Casa Amoblada Sector ...', precio: 260000 },
-];
+import { Publication } from '@/types/publication';
+import { PublicationService } from '@/services/publicationService';
 
 export default function MisProductosScreen() {
-  const [productos, setProductos] = useState<Producto[]>(PRODUCTOS_INICIALES);
+  const [productos, setProductos] = useState<Publication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleEliminar = (id: string) => {
+  // Función para cargar productos del usuario
+  const loadUserProducts = async () => {
+    try {
+      const data = await PublicationService.getUserPublications();
+      setProductos(data);
+    } catch (error) {
+      console.error('Error cargando productos:', error);
+      Alert.alert('Error', 'No se pudieron cargar tus productos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para refrescar
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadUserProducts();
+    setRefreshing(false);
+  };
+
+  // Cargar productos al montar el componente
+  useEffect(() => {
+    loadUserProducts();
+  }, []);
+
+  const handleEliminar = async (id: string) => {
     Alert.alert(
       'Eliminar Producto',
       '¿Estás seguro que deseas eliminar este producto?',
@@ -41,8 +54,15 @@ export default function MisProductosScreen() {
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => {
-            setProductos(productos.filter(p => p.id !== id));
+          onPress: async () => {
+            try {
+              await PublicationService.deletePublication(id);
+              setProductos(productos.filter(p => p.id !== id));
+              Alert.alert('Éxito', 'Producto eliminado correctamente');
+            } catch (error) {
+              console.error('Error eliminando producto:', error);
+              Alert.alert('Error', 'No se pudo eliminar el producto');
+            }
           },
         },
       ]
@@ -54,7 +74,7 @@ export default function MisProductosScreen() {
     // TODO: Navegar a pantalla de edición
   };
 
-  const renderProducto = ({ item }: { item: Producto }) => (
+  const renderProducto = ({ item }: { item: Publication }) => (
     <View style={styles.card}>
       {/* Botón Eliminar */}
       <TouchableOpacity
@@ -80,14 +100,26 @@ export default function MisProductosScreen() {
       {/* Información del producto */}
       <View style={styles.cardInfo}>
         <ThemedText style={styles.precio}>
-          ${item.precio.toLocaleString('es-CL')}
+          ${item.price.toLocaleString('es-CL')}
         </ThemedText>
         <ThemedText style={styles.titulo} numberOfLines={2}>
-          {item.titulo}
+          {item.title}
         </ThemedText>
       </View>
     </View>
   );
+
+  // Mostrar indicador de carga inicial
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#707cb4ff" />
+          <ThemedText style={styles.loadingText}>Cargando tus productos...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,6 +132,13 @@ export default function MisProductosScreen() {
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#707cb4ff']}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={64} color="#ccc" />
@@ -117,6 +156,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
   },
 
   // Header
