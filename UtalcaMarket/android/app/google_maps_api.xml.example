@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+    ARCHIVO DE EJEMPLO - NO USAR EN PRODUCCIÓN
+    
+    Copia este archivo como google_maps_api.xml y reemplaza YOUR_API_KEY_HERE con tu API key real.
+    
+    Para obtener una Google Maps API Key:
+    1. Ve a https://console.cloud.google.com/
+    2. Crea un proyecto o selecciona uno existente
+    3. Habilita "Maps SDK for Android"
+    4. Ve a "Credentials" → "Create Credentials" → "API Key"
+    5. (Recomendado) Restringe la key:
+       - Application restrictions: Android apps
+       - Agrega el package name: com.anonymous.UtalcaMarket
+       - Agrega tu SHA-1 certificate fingerprint
+    6. Copia la API key generada
+    
+    Obtener SHA-1 fingerprint:
+    cd android
+    ./gradlew signingReport
+    
+    Más información: https://developers.google.com/maps/documentation/android-sdk/get-api-key
+    -->
+    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">YOUR_API_KEY_HERE</string>
+</resources>

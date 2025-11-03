@@ -9,7 +9,15 @@ export interface Publication {
   created_at: string;
   updated_at: string;
   media_url?: string[] | string; // Puede ser array o string JSON
-  Location?: Location.LocationObject;
+  Location?: Location.LocationObject; // Formato antiguo
+  location?: string | {  // Puede ser string JSON o objeto
+    latitude: number;
+    longitude: number;
+    coords?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
   pub_type?: 'producto' | 'servicio';
 }
 

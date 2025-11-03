@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-// import MapView, { Marker } from 'react-native-maps'; // Temporal: requiere dev build
+import MapView, { Marker } from 'react-native-maps';
 import { ThemedText } from '@/components/themed-text';
 import { Publication } from '@/types/publication';
 import { PublicationService } from '@/services/publicationService';
@@ -35,7 +35,28 @@ export default function ProductDetailScreen() {
     try {
       if (!id) return;
       const data = await PublicationService.getPublicationById(id);
+      
+      // Parsear location si viene como string JSON
+      if (data?.location && typeof data.location === 'string') {
+        try {
+          data.location = JSON.parse(data.location);
+          console.log('✅ Location parseado:', data.location);
+        } catch (e) {
+          console.log('❌ Error parseando location:', e);
+        }
+      }
+      
       setProduct(data);
+
+      // DEBUG: Verificar datos de ubicación
+      console.log('📍 Datos del producto:', {
+        id: data?.id,
+        title: data?.title,
+        hasLocation: !!data?.location,
+        locationData: data?.location,
+        hasCoords: !!(data?.location?.coords),
+        hasLatLng: !!(data?.location?.latitude && data?.location?.longitude),
+      });
 
       // Procesar imágenes
       if (data?.media_url) {
@@ -206,16 +227,15 @@ export default function ProductDetailScreen() {
           </View>
 
           {/* Ubicación en el mapa */}
-          {/* TEMPORALMENTE DESHABILITADO - Requiere dev build, no funciona en Expo Go 
-          {product.Location && product.Location.coords && (
+          {product.location && (product.location.latitude || product.location.coords) && (
             <View style={styles.section}>
               <ThemedText style={styles.sectionTitle}>Ubicación Aproximada</ThemedText>
               <View style={styles.mapContainer}>
                 <MapView
                   style={styles.map}
                   initialRegion={{
-                    latitude: product.Location.coords.latitude,
-                    longitude: product.Location.coords.longitude,
+                    latitude: product.location.coords?.latitude || product.location.latitude,
+                    longitude: product.location.coords?.longitude || product.location.longitude,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
                   }}
@@ -224,8 +244,8 @@ export default function ProductDetailScreen() {
                 >
                   <Marker
                     coordinate={{
-                      latitude: product.Location.coords.latitude,
-                      longitude: product.Location.coords.longitude,
+                      latitude: product.location.coords?.latitude || product.location.latitude,
+                      longitude: product.location.coords?.longitude || product.location.longitude,
                     }}
                     title={product.title}
                   >
@@ -236,26 +256,9 @@ export default function ProductDetailScreen() {
               <View style={styles.locationInfo}>
                 <Ionicons name="location-outline" size={16} color="#666" />
                 <ThemedText style={styles.locationText}>
-                  {product.Location.coords.latitude.toFixed(4)}, {product.Location.coords.longitude.toFixed(4)}
+                  {(product.location.coords?.latitude || product.location.latitude).toFixed(4)}, {(product.location.coords?.longitude || product.location.longitude).toFixed(4)}
                 </ThemedText>
               </View>
-            </View>
-          )}
-          */}
-          
-          {/* Ubicación (sin mapa por ahora) */}
-          {product.Location && product.Location.coords && (
-            <View style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>Ubicación Aproximada</ThemedText>
-              <View style={styles.locationInfo}>
-                <Ionicons name="location" size={32} color="#707cb4ff" />
-                <ThemedText style={styles.locationText}>
-                  Lat: {product.Location.coords.latitude.toFixed(4)}, Lon: {product.Location.coords.longitude.toFixed(4)}
-                </ThemedText>
-              </View>
-              <ThemedText style={[styles.locationText, { marginTop: 8, fontSize: 12, color: '#999' }]}>
-                El mapa estará disponible en la versión completa de la app
-              </ThemedText>
             </View>
           )}
 
