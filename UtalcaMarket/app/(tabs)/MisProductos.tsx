@@ -11,12 +11,15 @@ import {
     ActivityIndicator,
     RefreshControl,
     Image,
+    Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, Link } from 'expo-router';
 import { Publication } from '@/types/publication';
 import { PublicationService } from '@/services/publicationService';
 
 export default function MisProductosScreen() {
+  const router = useRouter();
   const [productos, setProductos] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,11 +97,16 @@ export default function MisProductosScreen() {
     const imageUrl = mediaArray.length > 0 ? mediaArray[0] : null;
 
     return (
-      <View style={styles.card}>
+      <Link href={`/ProductDetail?id=${item.id}`} asChild>
+        <Pressable style={{ flex: 1 }}>
+          <View style={styles.card}>
         {/* Botón Eliminar */}
         <TouchableOpacity
           style={styles.deleteBtn}
-          onPress={() => handleEliminar(item.id)}
+          onPress={(e) => {
+            e?.stopPropagation?.();
+            handleEliminar(item.id);
+          }}
         >
           <Ionicons name="close-circle" size={28} color="#ff4444" />
         </TouchableOpacity>
@@ -106,7 +114,10 @@ export default function MisProductosScreen() {
         {/* Botón Editar */}
         <TouchableOpacity
           style={styles.editBtn}
-          onPress={() => handleEditar(item.id)}
+          onPress={(e) => {
+            e?.stopPropagation?.();
+            handleEditar(item.id);
+          }}
         >
           <Ionicons name="create-outline" size={24} color="#333" />
         </TouchableOpacity>
@@ -139,6 +150,8 @@ export default function MisProductosScreen() {
           </ThemedText>
         </View>
       </View>
+        </Pressable>
+      </Link>
     );
   };
 

@@ -217,7 +217,6 @@ export default function TabLayout() {
           <Stack.Screen name="messages" />
           <Stack.Screen name="profile" />
           <Stack.Screen name="PubForm" />
-          <Stack.Screen name="publications" />
         </Stack>
       </View>
     </AuthRedirect>

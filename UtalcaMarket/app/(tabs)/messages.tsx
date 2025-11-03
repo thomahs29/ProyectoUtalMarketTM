@@ -13,6 +13,7 @@ import { Audio, Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 
 interface Message {
   id: string;
@@ -113,7 +114,8 @@ function AudioPlayer({ audioUri }: { audioUri: string }) {
 
 export default function MessagesScreen() {
   const { user } = useAuth();
-  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ conversationId?: string }>();
+  const [selectedChat, setSelectedChat] = useState<string | null>(params.conversationId || null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageText, setMessageText] = useState('');
@@ -126,6 +128,13 @@ export default function MessagesScreen() {
   const [expandedAudio, setExpandedAudio] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
+
+  // Abrir conversación desde parámetros
+  useEffect(() => {
+    if (params.conversationId && params.conversationId !== selectedChat) {
+      setSelectedChat(params.conversationId);
+    }
+  }, [params.conversationId]);
 
   // Cargar conversaciones cuando se monta el componente
   const loadConversations = useCallback(async () => {

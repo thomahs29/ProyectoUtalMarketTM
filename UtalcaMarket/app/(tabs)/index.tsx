@@ -8,8 +8,11 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, Link } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -101,6 +104,7 @@ export default function HomeScreen() {
 }
 
 function Card({ item }: { item: Publication }) {
+  const router = useRouter();
   const [imageLoading, setImageLoading] = React.useState(true);
   const [imageError, setImageError] = React.useState(false);
 
@@ -129,9 +133,10 @@ function Card({ item }: { item: Publication }) {
   
   const imageUrl = mediaArray.length > 0 ? mediaArray[0] : null;
 
-
   return (
-    <ThemedView style={styles.card}>
+    <Link href={`/ProductDetail?id=${item.id}`} asChild>
+      <Pressable style={{ flex: 1 }}>
+        <ThemedView style={styles.card}>
       <View style={styles.cardImage}>
         {imageUrl ? (
           <>
@@ -181,6 +186,8 @@ function Card({ item }: { item: Publication }) {
         </ThemedText>
       </ThemedView>
     </ThemedView>
+    </Pressable>
+    </Link>
   );
 }
 
