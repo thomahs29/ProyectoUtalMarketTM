@@ -10,6 +10,7 @@ import {
     View,
     ActivityIndicator,
     RefreshControl,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Publication } from '@/types/publication';
@@ -74,40 +75,72 @@ export default function MisProductosScreen() {
     // TODO: Navegar a pantalla de edición
   };
 
-  const renderProducto = ({ item }: { item: Publication }) => (
-    <View style={styles.card}>
-      {/* Botón Eliminar */}
-      <TouchableOpacity
-        style={styles.deleteBtn}
-        onPress={() => handleEliminar(item.id)}
-      >
-        <Ionicons name="close-circle" size={28} color="#ff4444" />
-      </TouchableOpacity>
+  const renderProducto = ({ item }: { item: Publication }) => {
+    // Obtener la primera imagen si existe
+    // Si media_url es un string JSON, parsearlo a array
+    let mediaArray: string[] = [];
+    if (item.media_url) {
+      if (typeof item.media_url === 'string') {
+        try {
+          mediaArray = JSON.parse(item.media_url);
+        } catch (e) {
+          console.log('Error parseando media_url:', e);
+        }
+      } else if (Array.isArray(item.media_url)) {
+        mediaArray = item.media_url;
+      }
+    }
+    
+    const imageUrl = mediaArray.length > 0 ? mediaArray[0] : null;
 
-      {/* Botón Editar */}
-      <TouchableOpacity
-        style={styles.editBtn}
-        onPress={() => handleEditar(item.id)}
-      >
-        <Ionicons name="create-outline" size={24} color="#333" />
-      </TouchableOpacity>
+    return (
+      <View style={styles.card}>
+        {/* Botón Eliminar */}
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={() => handleEliminar(item.id)}
+        >
+          <Ionicons name="close-circle" size={28} color="#ff4444" />
+        </TouchableOpacity>
 
-      {/* Imagen del producto */}
-      <View style={styles.imagePlaceholder}>
-        <Ionicons name="image-outline" size={48} color="#999" />
+        {/* Botón Editar */}
+        <TouchableOpacity
+          style={styles.editBtn}
+          onPress={() => handleEditar(item.id)}
+        >
+          <Ionicons name="create-outline" size={24} color="#333" />
+        </TouchableOpacity>
+
+        {/* Imagen del producto */}
+        <View style={styles.imagePlaceholder}>
+          {imageUrl ? (
+            <Image 
+              source={{ uri: imageUrl }} 
+              style={styles.productImage}
+              resizeMode="cover"
+              onError={(error) => {
+                console.log('❌ Error cargando imagen:', imageUrl, error.nativeEvent.error);
+              }}
+              onLoad={() => {
+              }}
+            />
+          ) : (
+            <Ionicons name="image-outline" size={48} color="#999" />
+          )}
+        </View>
+
+        {/* Información del producto */}
+        <View style={styles.cardInfo}>
+          <ThemedText style={styles.precio}>
+            ${item.price.toLocaleString('es-CL')}
+          </ThemedText>
+          <ThemedText style={styles.titulo} numberOfLines={2}>
+            {item.title}
+          </ThemedText>
+        </View>
       </View>
-
-      {/* Información del producto */}
-      <View style={styles.cardInfo}>
-        <ThemedText style={styles.precio}>
-          ${item.price.toLocaleString('es-CL')}
-        </ThemedText>
-        <ThemedText style={styles.titulo} numberOfLines={2}>
-          {item.title}
-        </ThemedText>
-      </View>
-    </View>
-  );
+    );
+  };
 
   // Mostrar indicador de carga inicial
   if (loading) {
@@ -259,6 +292,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
 
   // Información
