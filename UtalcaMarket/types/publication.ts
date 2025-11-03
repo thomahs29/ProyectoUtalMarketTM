@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 export interface Publication {
   id: string;
   title: string;
@@ -7,6 +8,17 @@ export interface Publication {
   user_id: string;
   created_at: string;
   updated_at: string;
+  media_url?: string[] | string; // Puede ser array o string JSON
+  Location?: Location.LocationObject; // Formato antiguo
+  location?: string | {  // Puede ser string JSON o objeto
+    latitude: number;
+    longitude: number;
+    coords?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  pub_type?: 'producto' | 'servicio';
 }
 
 export interface CreatePublicationData {
@@ -14,6 +26,9 @@ export interface CreatePublicationData {
   description: string;
   price: number;
   category: string;
+  media_url?: string[];
+  Location?: Location.LocationObject;
+  pub_type?: 'producto' | 'servicio';
 }
 
 export type Category = 'electronics' | 'books' | 'clothing' | 'home' | 'sports' | 'other';

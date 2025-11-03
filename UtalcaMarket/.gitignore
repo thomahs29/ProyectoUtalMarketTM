@@ -40,5 +40,11 @@ yarn-error.*
 app-example
 
 # generated native folders
-/ios
-/android
+# Comentado para permitir subir configuración de Android/iOS al repo
+# /ios
+# /android
+
+# Pero ignorar el archivo con la API key de Google Maps
+android/app/src/main/res/values/google_maps_api.xml
+# Subir el archivo de ejemplo
+!android/app/src/main/res/values/google_maps_api.xml.example

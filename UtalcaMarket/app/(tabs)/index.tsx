@@ -7,17 +7,21 @@ import {
   View,
   ActivityIndicator,
   RefreshControl,
+  Image,
+  TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, Link } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Publication } from '@/types/publication';
 import { PublicationService } from '@/services/publicationService';
+import { Ionicons } from '@expo/vector-icons';
 
 // Constantes de colores
 const HEADER_BG = '#e8f0fe';
-const PLACEHOLDER = '#c2d4e8';
 const CARD_FOOTER = '#f9fbfd';
 
 export default function HomeScreen() {
@@ -100,6 +104,10 @@ export default function HomeScreen() {
 }
 
 function Card({ item }: { item: Publication }) {
+  const router = useRouter();
+  const [imageLoading, setImageLoading] = React.useState(true);
+  const [imageError, setImageError] = React.useState(false);
+
   // Formatear precio
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CL', {
@@ -108,11 +116,66 @@ function Card({ item }: { item: Publication }) {
     }).format(price);
   };
 
+  // Obtener la primera imagen si existe
+  // Si media_url es un string JSON, parsearlo a array
+  let mediaArray: string[] = [];
+  if (item.media_url) {
+    if (typeof item.media_url === 'string') {
+      try {
+        mediaArray = JSON.parse(item.media_url);
+      } catch (e) {
+        console.log('Error parseando media_url:', e);
+      }
+    } else if (Array.isArray(item.media_url)) {
+      mediaArray = item.media_url;
+    }
+  }
+  
+  const imageUrl = mediaArray.length > 0 ? mediaArray[0] : null;
+
   return (
-    <ThemedView style={styles.card}>
+    <Link href={`/ProductDetail?id=${item.id}`} asChild>
+      <Pressable style={{ flex: 1 }}>
+        <ThemedView style={styles.card}>
       <View style={styles.cardImage}>
-        <View style={styles.imgShapeLarge} />
-        <View style={styles.imgShapeSmall} />
+        {imageUrl ? (
+          <>
+            {imageLoading && !imageError && (
+              <View style={styles.loadingImageContainer}>
+                <ActivityIndicator size="small" color="#707cb4ff" />
+              </View>
+            )}
+            <Image 
+              source={{ uri: imageUrl }} 
+              style={[styles.productImage, imageLoading && { opacity: 0 }]}
+              resizeMode="cover"
+              onLoadStart={() => {
+                setImageLoading(true);
+                setImageError(false);
+              }}
+              onError={(error) => {
+                console.log('❌ Error cargando imagen:', imageUrl, error.nativeEvent.error);
+                setImageLoading(false);
+                setImageError(true);
+              }}
+              onLoad={() => {
+                setImageLoading(false);
+                setImageError(false);
+              }}
+            />
+            {imageError && (
+              <>
+                <Ionicons name="image-outline" size={48} color="#999" />
+                <ThemedText style={styles.noImageText}>Error al cargar</ThemedText>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <Ionicons name="image-outline" size={48} color="#999" />
+            <ThemedText style={styles.noImageText}>Sin imagen</ThemedText>
+          </>
+        )}
       </View>
 
       <ThemedView style={styles.cardFooter}>
@@ -123,6 +186,8 @@ function Card({ item }: { item: Publication }) {
         </ThemedText>
       </ThemedView>
     </ThemedView>
+    </Pressable>
+    </Link>
   );
 }
 
@@ -180,14 +245,28 @@ const styles = StyleSheet.create({
   },
   cardImage: {
     height: 140,
+    width: '100%',
     backgroundColor: HEADER_BG,
-    padding: 12,
-    gap: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
-  imgShapeLarge: { width: 64, height: 46, borderRadius: 8, backgroundColor: PLACEHOLDER },
-  imgShapeSmall: { width: 32, height: 32, borderRadius: 6, backgroundColor: PLACEHOLDER },
+  loadingImageContainer: {
+    position: 'absolute',
+    zIndex: 1,
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  noImageText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#999',
+  },
   cardFooter: { 
     padding: 12, 
     backgroundColor: CARD_FOOTER,

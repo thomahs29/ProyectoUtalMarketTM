@@ -66,6 +66,25 @@ export async function getOrCreateConversation(
 }
 
 /**
+ * Crear o obtener una conversación y devolver su ID
+ */
+export async function createOrGetConversation(
+  currentUserId: string,
+  otherUserId: string
+): Promise<string> {
+  try {
+    const conversation = await getOrCreateConversation(otherUserId, currentUserId);
+    if (!conversation) {
+      throw new Error('No se pudo crear la conversación');
+    }
+    return conversation.id || conversation.conversation_id || '';
+  } catch (error) {
+    console.error('Error en createOrGetConversation:', error);
+    throw error;
+  }
+}
+
+/**
  * Obtener todas las conversaciones del usuario actual
  */
 export async function getUserConversations(
