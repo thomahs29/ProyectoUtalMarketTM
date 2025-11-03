@@ -40,24 +40,13 @@ export default function ProductDetailScreen() {
       if (data?.location && typeof data.location === 'string') {
         try {
           data.location = JSON.parse(data.location);
-          console.log('✅ Location parseado:', data.location);
         } catch (e) {
           console.log('❌ Error parseando location:', e);
         }
       }
       
       setProduct(data);
-
-      // DEBUG: Verificar datos de ubicación
-      console.log('📍 Datos del producto:', {
-        id: data?.id,
-        title: data?.title,
-        hasLocation: !!data?.location,
-        locationData: data?.location,
-        hasCoords: !!(data?.location?.coords),
-        hasLatLng: !!(data?.location?.latitude && data?.location?.longitude),
-      });
-
+      
       // Procesar imágenes
       if (data?.media_url) {
         let mediaArray: string[] = [];
