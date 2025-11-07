@@ -12,7 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Audio, Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 interface Message {
@@ -128,6 +128,7 @@ export default function MessagesScreen() {
   const [expandedAudio, setExpandedAudio] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Abrir conversación desde parámetros
   useEffect(() => {
@@ -320,11 +321,14 @@ export default function MessagesScreen() {
         const uri = recordingRef.current?.getURI();
         recordingRef.current = null;
         setIsRecording(false);
+        
+        // Detener animación
+        pulseAnim.stopAnimation();
+        pulseAnim.setValue(1);
 
         if (uri) {
           setSelectedMediaUri(uri);
           setSelectedMediaType('audio');
-          Alert.alert('Éxito', 'Audio grabado. Presiona enviar para compartirlo.');
         }
       } else {
         // Iniciar grabación
@@ -344,6 +348,22 @@ export default function MessagesScreen() {
         await recording.startAsync();
         recordingRef.current = recording;
         setIsRecording(true);
+
+        // Iniciar animación de pulso
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.5,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
       }
     } catch (error) {
       console.error('Error con audio:', error);
@@ -476,7 +496,7 @@ export default function MessagesScreen() {
         />
 
         {/* Preview de media seleccionada */}
-        {selectedMediaUri && (
+        {selectedMediaUri && !isRecording && (
           <View style={styles.mediaPreview}>
             {selectedMediaType === 'image' && (
               <Image
@@ -487,6 +507,13 @@ export default function MessagesScreen() {
             {selectedMediaType === 'video' && (
               <View style={styles.previewVideo}>
                 <MaterialIcons name="movie" size={40} color="#FFF" />
+                <Text style={styles.previewText}>Video listo para enviar</Text>
+              </View>
+            )}
+            {selectedMediaType === 'audio' && (
+              <View style={styles.previewAudio}>
+                <MaterialIcons name="mic" size={32} color="#FF3B30" />
+                <Text style={styles.previewText}>Audio listo para enviar</Text>
               </View>
             )}
             <TouchableOpacity
@@ -500,30 +527,52 @@ export default function MessagesScreen() {
 
         {/* Input */}
         <View style={styles.inputSection}>
-          {/* Media Buttons */}
-          <View style={styles.mediaButtons}>
-            <TouchableOpacity
-              style={styles.mediaButton}
-              onPress={handlePickImage}
-              disabled={sendingMessage}
-            >
-              <MaterialIcons name="image" size={24} color="#007AFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.mediaButton}
-              onPress={handlePickVideo}
-              disabled={sendingMessage}
-            >
-              <MaterialIcons name="videocam" size={24} color="#007AFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.mediaButton}
-              onPress={handlePickAudio}
-              disabled={sendingMessage}
-            >
-              <MaterialIcons name="mic" size={24} color="#007AFF" />
-            </TouchableOpacity>
-          </View>
+          {/* Indicador de grabación de audio */}
+          {isRecording && (
+            <View style={styles.recordingIndicator}>
+              <Animated.View 
+                style={[
+                  styles.recordingPulse,
+                  { transform: [{ scale: pulseAnim }] }
+                ]} 
+              />
+              <MaterialIcons name="mic" size={24} color="#FF3B30" />
+              <Text style={styles.recordingText}>Grabando audio...</Text>
+              <TouchableOpacity
+                style={styles.stopRecordingButton}
+                onPress={handlePickAudio}
+              >
+                <MaterialIcons name="stop" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Media Buttons - Ocultar cuando está grabando */}
+          {!isRecording && (
+            <View style={styles.mediaButtons}>
+              <TouchableOpacity
+                style={styles.mediaButton}
+                onPress={handlePickImage}
+                disabled={sendingMessage}
+              >
+                <MaterialIcons name="image" size={24} color="#007AFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.mediaButton}
+                onPress={handlePickVideo}
+                disabled={sendingMessage}
+              >
+                <MaterialIcons name="videocam" size={24} color="#007AFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.mediaButton, styles.audioButton]}
+                onPress={handlePickAudio}
+                disabled={sendingMessage}
+              >
+                <MaterialIcons name="mic" size={24} color="#FF3B30" />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Input Container */}
           <View style={styles.inputContainer}>
@@ -534,12 +583,12 @@ export default function MessagesScreen() {
               onChangeText={setMessageText}
               multiline
               maxLength={500}
-              editable={!sendingMessage}
+              editable={!sendingMessage && !isRecording}
             />
             <TouchableOpacity 
               onPress={handleSendMessage} 
               style={[styles.sendButton, sendingMessage && { opacity: 0.6 }]}
-              disabled={sendingMessage}
+              disabled={sendingMessage || isRecording}
             >
               {sendingMessage ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -876,6 +925,46 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderRadius: 8,
   },
+  audioButton: {
+    backgroundColor: '#FFEBEE',
+  },
+  recordingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFF3F3',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE0E0',
+    gap: 12,
+  },
+  recordingPulse: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FF3B30',
+    opacity: 0.8,
+  },
+  recordingText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF3B30',
+  },
+  stopRecordingButton: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 24,
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
   mediaPreview: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -896,6 +985,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  previewAudio: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderRadius: 8,
+    backgroundColor: '#FFEBEE',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  previewText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '500',
   },
   removeMediaButton: {
     position: 'absolute',
