@@ -170,57 +170,85 @@ export async function uploadChatMedia(
   mediaType: 'image' | 'video' | 'audio'
 ): Promise<string | null> {
   try {
-    // Obtener el archivo como blob
-    const response = await fetch(fileUri);
-    const blob = await response.blob();
+    console.log('📤 Subiendo archivo:', { conversationId, userId, fileUri, mediaType });
 
-    // Generar nombre único para el archivo
-    const fileName = `${conversationId}/${userId}_${Date.now()}.${getFileExtension(mediaType, blob.type)}`;
+    // Determinar el tipo MIME basado en el tipo de media
+    let mimeType = 'application/octet-stream';
+    let fileExtension = '';
 
-    // Subir a Storage
+    if (mediaType === 'image') {
+      mimeType = 'image/jpeg';
+      fileExtension = 'jpg';
+    } else if (mediaType === 'video') {
+      mimeType = 'video/mp4';
+      fileExtension = 'mp4';
+    } else if (mediaType === 'audio') {
+      mimeType = 'audio/m4a';
+      fileExtension = 'm4a';
+    }
+
+    const fileName = `${conversationId}/${userId}_${Date.now()}.${fileExtension}`;
+    
+    // Usar XMLHttpRequest para leer el archivo local como blob
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        resolve(xhr.response);
+      };
+      xhr.onerror = function (e) {
+        console.log('❌ Error en XHR:', e);
+        reject(new TypeError('Network request failed'));
+      };
+      xhr.responseType = 'blob';
+      xhr.open('GET', fileUri, true);
+      xhr.send(null);
+    });
+
+    console.log('📦 Blob creado, tamaño:', blob.size, 'tipo:', blob.type);
+
+    // Convertir blob a ArrayBuffer usando FileReader (compatible con React Native)
+    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result instanceof ArrayBuffer) {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to read file as ArrayBuffer'));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
+    });
+
+    console.log('🔄 ArrayBuffer creado, tamaño:', arrayBuffer.byteLength);
+
+    // Subir usando ArrayBuffer
     const { data, error } = await supabase.storage
       .from('chat-media')
-      .upload(fileName, blob, {
-        contentType: blob.type,
+      .upload(fileName, arrayBuffer, {
+        contentType: mimeType,
         upsert: false,
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error de Supabase Storage:', error);
+      throw error;
+    }
+
+    console.log('✅ Archivo subido:', data);
 
     // Obtener URL pública del archivo
     const { data: publicData } = supabase.storage
       .from('chat-media')
       .getPublicUrl(fileName);
 
+    console.log('🔗 URL pública:', publicData?.publicUrl);
+
     return publicData?.publicUrl || null;
   } catch (error) {
-    console.error('Error en uploadChatMedia:', error);
+    console.error('💥 Error en uploadChatMedia:', error);
     return null;
   }
-}
-
-/**
- * Obtener extensión del archivo según tipo MIME
- */
-function getFileExtension(mediaType: string, mimeType: string): string {
-  if (mediaType === 'image') {
-    if (mimeType.includes('jpeg')) return 'jpg';
-    if (mimeType.includes('png')) return 'png';
-    if (mimeType.includes('gif')) return 'gif';
-    if (mimeType.includes('webp')) return 'webp';
-  }
-  if (mediaType === 'video') {
-    if (mimeType.includes('mp4')) return 'mp4';
-    if (mimeType.includes('quicktime')) return 'mov';
-    if (mimeType.includes('webm')) return 'webm';
-  }
-  if (mediaType === 'audio') {
-    if (mimeType.includes('mpeg')) return 'mp3';
-    if (mimeType.includes('wav')) return 'wav';
-    if (mimeType.includes('ogg')) return 'ogg';
-    if (mimeType.includes('aac')) return 'm4a';
-  }
-  return 'bin';
 }
 
 /**
