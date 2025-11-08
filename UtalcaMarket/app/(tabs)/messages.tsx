@@ -34,6 +34,75 @@ interface Chat {
   participant_id: string;
 }
 
+// Componente para mostrar avatar con placeholder
+function UserAvatar({ uri, name, size = 40 }: { uri: string; name: string; size?: number }) {
+  const [imageError, setImageError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  console.log('🖼️ UserAvatar recibió:', { uri, name, size });
+
+  // Generar iniciales del nombre
+  const getInitials = (fullName: string) => {
+    if (!fullName || fullName.trim() === '') return '?';
+    const names = fullName.trim().split(' ');
+    if (names.length >= 2) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase();
+    }
+    return fullName.substring(0, 2).toUpperCase();
+  };
+
+  // Verificar si la URI es válida
+  const isValidUri = uri && uri.trim() !== '' && !uri.includes('undefined') && !uri.includes('null');
+
+  if (imageError || !isValidUri) {
+    console.log('🖼️ Mostrando placeholder para:', name, '(uri:', uri, ')');
+    // Mostrar placeholder con iniciales
+    return (
+      <View 
+        style={[
+          styles.avatarPlaceholder, 
+          { width: size, height: size, borderRadius: size / 2 }
+        ]}
+      >
+        <Text style={[styles.avatarInitials, { fontSize: size * 0.4 }]}>
+          {getInitials(name)}
+        </Text>
+      </View>
+    );
+  }
+
+  console.log('🖼️ Intentando cargar imagen:', uri);
+  return (
+    <View style={{ width: size, height: size }}>
+      {isLoading && (
+        <View 
+          style={[
+            styles.avatarPlaceholder, 
+            { width: size, height: size, borderRadius: size / 2, position: 'absolute' }
+          ]}
+        >
+          <Text style={[styles.avatarInitials, { fontSize: size * 0.4 }]}>
+            {getInitials(name)}
+          </Text>
+        </View>
+      )}
+      <Image
+        source={{ uri }}
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+        onError={(error) => {
+          console.log('❌ Error cargando imagen:', uri, error.nativeEvent);
+          setImageError(true);
+          setIsLoading(false);
+        }}
+        onLoad={() => {
+          console.log('✅ Imagen cargada exitosamente:', uri);
+          setIsLoading(false);
+        }}
+      />
+    </View>
+  );
+}
+
 // Componente para reproducir audio
 function AudioPlayer({ audioUri }: { audioUri: string }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -171,6 +240,7 @@ export default function MessagesScreen() {
     try {
       setLoading(true);
       const conversations = await getUserConversations(user.id);
+      console.log('📋 Conversaciones obtenidas:', conversations.length);
       
       // Convertir conversaciones a formato de chat
       const chatsList: Chat[] = await Promise.all(
@@ -181,9 +251,33 @@ export default function MessagesScreen() {
               : conv.participant_1_id;
 
           const conversationId = conv.conversation_id || conv.id;
+          console.log('🔍 Obteniendo datos para conversación:', conversationId);
           const otherUser = await getOtherParticipant(conversationId || '', user.id);
+          console.log('👤 Datos del otro usuario:', {
+            id: otherUser?.id,
+            full_name: otherUser?.full_name,
+            email: otherUser?.email,
+            avatar_url: otherUser?.avatar_url
+          });
+          
           const userName = otherUser?.full_name || otherUser?.email?.split('@')[0] || 'Usuario';
-          const avatarSeed = otherUser?.email || otherUser?.id || 'user';
+          
+          // Usar avatar_url del perfil si existe, sino usar placeholder
+          let avatarUrl: string;
+          if (otherUser?.avatar_url && otherUser.avatar_url.trim() !== '') {
+            avatarUrl = otherUser.avatar_url;
+            console.log('✅ Usando avatar_url de la BD:', avatarUrl);
+          } else {
+            avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=707cb4&color=fff&size=128`;
+            console.log('📝 Usando placeholder para:', userName);
+          }
+
+          console.log('✅ Chat creado:', {
+            id: conversationId,
+            userName,
+            avatarUrl,
+            hasAvatarInDB: !!otherUser?.avatar_url
+          });
 
           return {
             id: conversationId || '',
@@ -192,13 +286,15 @@ export default function MessagesScreen() {
             timestamp: conv.last_message_time
               ? formatTime(new Date(conv.last_message_time))
               : 'Ahora',
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
+            avatar: avatarUrl,
             unread: 0,
             participant_id: otherParticipantId,
           };
         })
       );
 
+      console.log('📝 Total de chats procesados:', chatsList.length);
+      console.log('📋 Chats completos:', JSON.stringify(chatsList, null, 2));
       setChats(chatsList);
     } catch (error) {
       console.error('Error cargando conversaciones:', error);
@@ -210,6 +306,17 @@ export default function MessagesScreen() {
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  // Debug: mostrar chats cuando cambian
+  useEffect(() => {
+    if (chats.length > 0) {
+      console.log('📱 Estado de chats actualizado:', chats.map(c => ({
+        id: c.id,
+        userName: c.userName,
+        avatar: c.avatar ? c.avatar.substring(0, 50) + '...' : 'NO AVATAR'
+      })));
+    }
+  }, [chats]);
 
   // Suscribirse a mensajes cuando se selecciona un chat
   useEffect(() => {
@@ -592,6 +699,12 @@ export default function MessagesScreen() {
   const currentChat = chats.find(c => c.id === selectedChat);
 
   if (selectedChat && currentChat) {
+    console.log('💬 Renderizando chat header para:', {
+      id: currentChat.id,
+      userName: currentChat.userName,
+      avatar: currentChat.avatar
+    });
+    
     return (
       <View style={styles.chatContainer}>
         {/* Header */}
@@ -600,7 +713,11 @@ export default function MessagesScreen() {
             <MaterialIcons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
           <View style={styles.chatHeaderInfo}>
-            <Image source={{ uri: currentChat.avatar }} style={styles.chatHeaderAvatar} />
+            <UserAvatar 
+              uri={currentChat.avatar} 
+              name={currentChat.userName} 
+              size={40} 
+            />
             <Text style={styles.chatHeaderName}>{currentChat.userName}</Text>
           </View>
           <MaterialIcons name="more-vert" size={24} color="#333" />
@@ -900,7 +1017,11 @@ export default function MessagesScreen() {
             style={styles.chatItem}
             onPress={() => setSelectedChat(item.id)}
           >
-            <Image source={{ uri: item.avatar }} style={styles.avatar} />
+            <UserAvatar 
+              uri={item.avatar} 
+              name={item.userName} 
+              size={50} 
+            />
             <View style={styles.chatInfo}>
               <View style={styles.chatHeader2}>
                 <Text style={styles.userName}>{item.userName}</Text>
@@ -968,6 +1089,7 @@ const styles = StyleSheet.create({
   },
   chatInfo: {
     flex: 1,
+    marginHorizontal: 12,
   },
   chatHeader2: {
     flexDirection: 'row',
@@ -1035,10 +1157,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 12,
   },
+  avatarPlaceholder: {
+    backgroundColor: '#707cb4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    color: '#fff',
+    fontWeight: '600',
+  },
   chatHeaderName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    marginLeft: 12,
   },
   messagesList: {
     paddingHorizontal: 12,
