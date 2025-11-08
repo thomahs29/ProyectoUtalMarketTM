@@ -130,6 +130,34 @@ export default function MessagesScreen() {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // Inicializar sistema de audio al montar el componente
+  useEffect(() => {
+    const initAudio = async () => {
+      try {
+        console.log('🔊 Inicializando sistema de audio...');
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+        console.log('✅ Sistema de audio inicializado');
+      } catch (error) {
+        console.warn('⚠️ Error inicializando audio:', error);
+      }
+    };
+
+    initAudio();
+
+    // Cleanup al desmontar
+    return () => {
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(console.error);
+      }
+    };
+  }, []);
+
   // Abrir conversación desde parámetros
   useEffect(() => {
     if (params.conversationId && params.conversationId !== selectedChat) {
@@ -280,95 +308,257 @@ export default function MessagesScreen() {
   };
 
   const handlePickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        aspect: [4, 3],
-        quality: 0.8,
-      });
+    console.log('🖼️ handlePickImage llamado');
+    
+    // Mostrar opciones: Cámara o Galería
+    Alert.alert(
+      'Seleccionar Imagen',
+      '¿De dónde quieres obtener la imagen?',
+      [
+        {
+          text: 'Cámara',
+          onPress: async () => {
+            try {
+              // Solicitar permisos de cámara
+              const { status } = await ImagePicker.requestCameraPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permiso denegado', 'Se necesita permiso para usar la cámara.');
+                return;
+              }
 
-      if (!result.canceled && result.assets[0]) {
-        setSelectedMediaUri(result.assets[0].uri);
-        setSelectedMediaType('image');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo seleccionar la imagen.');
-    }
+              const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: 'images',
+                aspect: [4, 3],
+                quality: 0.8,
+                allowsEditing: true,
+              });
+
+              if (!result.canceled && result.assets[0]) {
+                setSelectedMediaUri(result.assets[0].uri);
+                setSelectedMediaType('image');
+              }
+            } catch (error) {
+              console.error('Error con cámara:', error);
+              Alert.alert('Error', 'No se pudo tomar la foto.');
+            }
+          },
+        },
+        {
+          text: 'Galería',
+          onPress: async () => {
+            try {
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: 'images',
+                aspect: [4, 3],
+                quality: 0.8,
+                allowsEditing: true,
+              });
+
+              if (!result.canceled && result.assets[0]) {
+                setSelectedMediaUri(result.assets[0].uri);
+                setSelectedMediaType('image');
+              }
+            } catch (error) {
+              console.error('Error con galería:', error);
+              Alert.alert('Error', 'No se pudo seleccionar la imagen.');
+            }
+          },
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   const handlePickVideo = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'videos',
-        aspect: [4, 3],
-        quality: 0.8,
-      });
+    console.log('🎥 handlePickVideo llamado');
+    
+    // Mostrar opciones: Grabar o Galería
+    Alert.alert(
+      'Seleccionar Video',
+      '¿De dónde quieres obtener el video?',
+      [
+        {
+          text: 'Grabar Video',
+          onPress: async () => {
+            try {
+              // Solicitar permisos de cámara
+              const { status } = await ImagePicker.requestCameraPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert('Permiso denegado', 'Se necesita permiso para usar la cámara.');
+                return;
+              }
 
-      if (!result.canceled && result.assets[0]) {
-        setSelectedMediaUri(result.assets[0].uri);
-        setSelectedMediaType('video');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo seleccionar el video.');
-    }
+              const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: 'videos',
+                allowsEditing: true,
+                quality: 0.8,
+                videoMaxDuration: 60, // Máximo 60 segundos
+              });
+
+              if (!result.canceled && result.assets[0]) {
+                setSelectedMediaUri(result.assets[0].uri);
+                setSelectedMediaType('video');
+              }
+            } catch (error) {
+              console.error('Error grabando video:', error);
+              Alert.alert('Error', 'No se pudo grabar el video.');
+            }
+          },
+        },
+        {
+          text: 'Galería',
+          onPress: async () => {
+            try {
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: 'videos',
+                quality: 0.8,
+                allowsEditing: true,
+              });
+
+              if (!result.canceled && result.assets[0]) {
+                setSelectedMediaUri(result.assets[0].uri);
+                setSelectedMediaType('video');
+              }
+            } catch (error) {
+              console.error('Error con galería:', error);
+              Alert.alert('Error', 'No se pudo seleccionar el video.');
+            }
+          },
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   const handlePickAudio = async () => {
+    console.log('🎤 handlePickAudio llamado, isRecording:', isRecording);
     try {
       if (isRecording) {
+        console.log('⏹️ Deteniendo grabación...');
         // Detener grabación
-        await recordingRef.current?.stopAndUnloadAsync();
-        const uri = recordingRef.current?.getURI();
-        recordingRef.current = null;
+        if (recordingRef.current) {
+          try {
+            await recordingRef.current.stopAndUnloadAsync();
+            const uri = recordingRef.current.getURI();
+            recordingRef.current = null;
+            
+            if (uri) {
+              console.log('✅ Audio grabado en:', uri);
+              setSelectedMediaUri(uri);
+              setSelectedMediaType('audio');
+            }
+          } catch (stopError) {
+            console.error('❌ Error deteniendo grabación:', stopError);
+          }
+        }
+        
         setIsRecording(false);
         
         // Detener animación
         pulseAnim.stopAnimation();
         pulseAnim.setValue(1);
 
-        if (uri) {
-          setSelectedMediaUri(uri);
-          setSelectedMediaType('audio');
+        // Resetear modo de audio
+        try {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+          });
+        } catch (audioModeError) {
+          console.warn('⚠️ Error reseteando modo de audio:', audioModeError);
         }
       } else {
-        // Iniciar grabación
-        const { granted } = await Audio.requestPermissionsAsync();
+        console.log('🎙️ Iniciando grabación...');
+        
+        // Solicitar permisos
+        console.log('📋 Solicitando permisos de audio...');
+        const { status, granted } = await Audio.requestPermissionsAsync();
+        console.log('📋 Permisos de audio:', { status, granted });
+        
         if (!granted) {
           Alert.alert('Permiso denegado', 'Se necesita permiso para grabar audio.');
           return;
         }
 
+        // Configurar modo de audio para Android
+        console.log('🔧 Configurando modo de audio...');
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: true,
           playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
         });
 
+        // Crear y preparar grabación
+        console.log('🎬 Preparando grabación...');
         const recording = new Audio.Recording();
-        await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-        await recording.startAsync();
-        recordingRef.current = recording;
-        setIsRecording(true);
+        
+        try {
+          await recording.prepareToRecordAsync({
+            ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+            android: {
+              extension: '.m4a',
+              outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+              audioEncoder: Audio.AndroidAudioEncoder.AAC,
+              sampleRate: 44100,
+              numberOfChannels: 2,
+              bitRate: 128000,
+            },
+            ios: {
+              extension: '.m4a',
+              outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+              audioQuality: Audio.IOSAudioQuality.HIGH,
+              sampleRate: 44100,
+              numberOfChannels: 2,
+              bitRate: 128000,
+              linearPCMBitDepth: 16,
+              linearPCMIsBigEndian: false,
+              linearPCMIsFloat: false,
+            },
+            web: {
+              mimeType: 'audio/webm',
+              bitsPerSecond: 128000,
+            },
+          });
+          
+          console.log('▶️ Iniciando grabación...');
+          await recording.startAsync();
+          recordingRef.current = recording;
+          setIsRecording(true);
+          console.log('✅ Grabación iniciada exitosamente');
 
-        // Iniciar animación de pulso
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(pulseAnim, {
-              toValue: 1.5,
-              duration: 500,
-              useNativeDriver: true,
-            }),
-            Animated.timing(pulseAnim, {
-              toValue: 1,
-              duration: 500,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
+          // Iniciar animación de pulso
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(pulseAnim, {
+                toValue: 1.5,
+                duration: 500,
+                useNativeDriver: true,
+              }),
+              Animated.timing(pulseAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+              }),
+            ])
+          ).start();
+        } catch (prepareError) {
+          console.error('❌ Error preparando/iniciando grabación:', prepareError);
+          throw prepareError;
+        }
       }
     } catch (error) {
-      console.error('Error con audio:', error);
-      Alert.alert('Error', 'No se pudo grabar el audio.');
+      console.error('❌ Error con audio:', error);
+      Alert.alert('Error', `No se pudo grabar el audio: ${error instanceof Error ? error.message : 'Error desconocido'}`);
       setIsRecording(false);
+      recordingRef.current = null;
     }
   };
 
@@ -552,21 +742,30 @@ export default function MessagesScreen() {
             <View style={styles.mediaButtons}>
               <TouchableOpacity
                 style={styles.mediaButton}
-                onPress={handlePickImage}
+                onPress={() => {
+                  console.log('📸 Botón IMAGE presionado');
+                  handlePickImage();
+                }}
                 disabled={sendingMessage}
               >
                 <MaterialIcons name="image" size={24} color="#007AFF" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.mediaButton}
-                onPress={handlePickVideo}
+                onPress={() => {
+                  console.log('🎬 Botón VIDEO presionado');
+                  handlePickVideo();
+                }}
                 disabled={sendingMessage}
               >
                 <MaterialIcons name="videocam" size={24} color="#007AFF" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.mediaButton, styles.audioButton]}
-                onPress={handlePickAudio}
+                onPress={() => {
+                  console.log('🔴 Botón AUDIO presionado');
+                  handlePickAudio();
+                }}
                 disabled={sendingMessage}
               >
                 <MaterialIcons name="mic" size={24} color="#FF3B30" />
