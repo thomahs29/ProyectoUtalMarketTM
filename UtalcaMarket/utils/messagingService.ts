@@ -309,30 +309,45 @@ export async function unsubscribeFromMessages(
  */
 export async function getOtherParticipant(
   conversationId: string,
-  currentUserId: string
+  currentUserId: string,
+  conversationData?: any
 ): Promise<any | null> {
   try {
+    console.log('🔍 getOtherParticipant llamado:', { conversationId, currentUserId, hasConvData: !!conversationData });
+    
     // Validar inputs
     if (!conversationId || !currentUserId) {
+      console.log('⚠️ Inputs inválidos');
       return {
         id: 'unknown',
         full_name: 'Usuario Desconocido',
         email: 'unknown@example.com',
+        avatar_url: null,
       };
     }
 
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('id', conversationId)
-      .single();
+    let conversation = conversationData;
+    
+    // Si no tenemos los datos de conversación, obtenerlos
+    if (!conversation) {
+      const { data: convData, error: convError } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .maybeSingle();
 
-    if (convError || !conversation) {
-      return {
-        id: 'unknown',
-        full_name: 'Usuario Desconocido',
-        email: 'unknown@example.com',
-      };
+      console.log('📋 Conversación obtenida:', { convData, error: convError });
+
+      if (convError || !convData) {
+        console.log('❌ Error obteniendo conversación');
+        return {
+          id: 'unknown',
+          full_name: 'Usuario Desconocido',
+          email: 'unknown@example.com',
+          avatar_url: null,
+        };
+      }
+      conversation = convData;
     }
 
     const otherUserId =
@@ -340,28 +355,46 @@ export async function getOtherParticipant(
         ? conversation.participant_2_id
         : conversation.participant_1_id;
 
+    console.log('👤 ID del otro usuario:', otherUserId);
+
     if (!otherUserId) {
+      console.log('❌ No se pudo determinar el otro usuario');
       return {
         id: 'unknown',
         full_name: 'Usuario Desconocido',
         email: 'unknown@example.com',
+        avatar_url: null,
       };
     }
 
-    // Intentar obtener del perfil primero
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', otherUserId)
-      .single();
+    // SOLUCIÓN: Usar la función RPC en Supabase
+    console.log('🔍 Intentando obtener perfil usando RPC...');
+    
+    const { data: rpcProfiles, error: rpcError } = await supabase
+      .rpc('get_user_profile', { user_id: otherUserId });
 
-    if (profile) return profile;
+    console.log('📦 Respuesta RPC completa:', { rpcProfiles, error: rpcError });
 
-    // Si no existe perfil, devolver nombre genérico con ID
+    if (rpcProfiles && Array.isArray(rpcProfiles) && rpcProfiles.length > 0 && !rpcError) {
+      const profile = rpcProfiles[0];
+      console.log('✅ Perfil obtenido vía RPC:', {
+        id: profile.id,
+        full_name: profile.full_name,
+        email: profile.email,
+        avatar_url: profile.avatar_url
+      });
+      return profile;
+    }
+
+    console.log('⚠️ RPC no disponible o falló:', rpcError?.message);
+
+    // Fallback: devolver información básica con el ID
+    console.log('⚠️ Retornando perfil genérico');
     return {
       id: otherUserId,
+      email: `user_${otherUserId.substring(0, 8)}@unknown.com`,
       full_name: `Usuario ${otherUserId.substring(0, 8)}`,
-      email: otherUserId,
+      avatar_url: null,
     };
   } catch (error) {
     console.error('Error en getOtherParticipant:', error);
