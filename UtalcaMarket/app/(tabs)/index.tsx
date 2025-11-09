@@ -10,6 +10,7 @@ import {
   Image,
   TouchableOpacity,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Link } from 'expo-router';
@@ -19,6 +20,8 @@ import { ThemedView } from '@/components/themed-view';
 import { Publication } from '@/types/publication';
 import { PublicationService } from '@/services/publicationService';
 import { Ionicons } from '@expo/vector-icons';
+import { CATEGORIES, Category } from './Categories';
+import { supabase } from '@/utils/supabase';
 
 // Constantes de colores
 const HEADER_BG = '#e8f0fe';
@@ -28,12 +31,22 @@ export default function HomeScreen() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'Todos'>('Todos');
 
   // Función para cargar publicaciones
   const loadPublications = async () => {
+    if (!refreshing) {
+      setLoading(true);
+    }
     try {
-      const data = await PublicationService.getAllPublications();
-      setPublications(data);
+      let query = supabase.from('publications').select('*').order('created_at', { ascending: false });
+
+      if (selectedCategory !== 'Todos') {
+        query = query.eq('category', selectedCategory);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      setPublications(data as Publication[]);
     } catch (error) {
       console.error('Error cargando publicaciones:', error);
     } finally {
@@ -51,7 +64,7 @@ export default function HomeScreen() {
   // Cargar publicaciones al montar el componente
   useEffect(() => {
     loadPublications();
-  }, []);
+  }, [selectedCategory]);
 
   // Mostrar indicador de carga inicial
   if (loading) {
@@ -71,6 +84,29 @@ export default function HomeScreen() {
 
       {/* Status bar acorde al header */}
       <StatusBar style="dark" backgroundColor="#fff" />
+
+      {/* Barra de Categorías */}
+      <View style={styles.categoryContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+          <TouchableOpacity
+            style={[styles.categoryChip, selectedCategory === 'Todos' && styles.categoryChipSelected]}
+            onPress={() => setSelectedCategory('Todos')}
+          >
+            <ThemedText style={[styles.categoryText, selectedCategory === 'Todos' && styles.categoryTextSelected]}>Todos</ThemedText>
+          </TouchableOpacity>
+          {CATEGORIES.map((category) => (
+            <TouchableOpacity
+              key={category}
+              style={[styles.categoryChip, selectedCategory === category && styles.categoryChipSelected]}
+              onPress={() => setSelectedCategory(category)}
+            >
+              <ThemedText style={[styles.categoryText, selectedCategory === category && styles.categoryTextSelected]}>{category}</ThemedText>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+
 
       {/* Lista principal; usamos ListHeaderComponent para hero/encabezado */}
       <FlatList
@@ -198,6 +234,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 24,
     gap: 12,
+  },
+  categoryContainer: {
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#fff',
+  },
+  categoryScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  categoryChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  categoryChipSelected: {
+    backgroundColor: '#E3F2FF',
+    borderColor: '#707cb4ff',
+  },
+  categoryText: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  categoryTextSelected: {
+    color: '#707cb4ff',
+    fontWeight: '700',
   },
   column: { gap: 12 },
 

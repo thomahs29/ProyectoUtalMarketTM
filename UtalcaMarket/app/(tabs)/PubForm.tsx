@@ -15,17 +15,9 @@ import * as Location from "expo-location";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/utils/supabase";
+import { CATEGORIES as CATEGORIAS } from "./Categories";
 
 type PublicationType = "producto" | "servicio" | null;
-
-const CATEGORIAS = [
-  "electronics",
-  "books",
-  "clothing",
-  "home",
-  "sports",
-  "other",
-];
 
 // Componente para mostrar vista previa de video
 const VideoPreview = ({ uri }: { uri: string }) => {
