@@ -1,5 +1,6 @@
 import { supabase } from '@/utils/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { sendMessageNotification } from '@/services/notificationService';
 
 export interface Conversation {
   id?: string;
@@ -153,6 +154,39 @@ export async function sendMessage(
       .single();
 
     if (error) throw error;
+
+    // Obtener información de la conversación y el remitente para la notificación
+    const { data: conversation } = await supabase
+      .from('conversations')
+      .select('participant_1_id, participant_2_id')
+      .eq('id', conversationId)
+      .single();
+
+    if (conversation) {
+      // Determinar el ID del destinatario
+      const recipientId = conversation.participant_1_id === senderId
+        ? conversation.participant_2_id
+        : conversation.participant_1_id;
+
+      // Obtener nombre del remitente
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('full_name, username')
+        .eq('id', senderId)
+        .single();
+
+      const senderName = senderProfile?.full_name || senderProfile?.username || 'Usuario';
+
+      // Enviar notificación push (solo si el destinatario no tiene la app abierta)
+      // La notificación se enviará en segundo plano
+      sendMessageNotification(
+        recipientId,
+        senderName,
+        mediaUrl ? '📎 Archivo adjunto' : content,
+        conversationId
+      ).catch(err => console.log('Error enviando notificación:', err));
+    }
+
     return data as Message;
   } catch (error) {
     console.error('Error en sendMessage:', error);

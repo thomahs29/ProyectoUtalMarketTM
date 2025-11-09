@@ -1,6 +1,7 @@
 import { supabase } from '@/utils/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { registerForPushNotifications, removePushToken } from '@/services/notificationService';
 
 interface AuthContextType {
   session: Session | null;
@@ -46,6 +47,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           setSession(session);
           setUser(session?.user ?? null);
+          
+          // Si hay una sesión activa al iniciar la app, registrar el token push
+          if (session?.user) {
+            registerForPushNotifications().catch(err => 
+              console.log('Error registrando token push al inicio:', err)
+            );
+          }
         }
       } catch (error) {
         console.error('Error al cargar sesión inicial:', error);
@@ -69,9 +77,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         switch (event) {
           case 'SIGNED_IN':
             console.log('Usuario ha iniciado sesión');
+            // Registrar token push cuando el usuario inicia sesión
+            registerForPushNotifications().catch(err => 
+              console.log('Error registrando token push:', err)
+            );
             break;
           case 'SIGNED_OUT':
             console.log('Usuario ha cerrado sesión');
+            // Eliminar token push cuando el usuario cierra sesión
+            removePushToken().catch(err => 
+              console.log('Error removiendo token push:', err)
+            );
             break;
           case 'TOKEN_REFRESHED':
             console.log('Token de sesión renovado');
@@ -91,6 +107,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       setLoading(true);
+      
+      // Eliminar token push antes de cerrar sesión
+      await removePushToken().catch(err => 
+        console.log('Error removiendo token push:', err)
+      );
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error al cerrar sesión:', error.message);

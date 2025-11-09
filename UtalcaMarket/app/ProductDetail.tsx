@@ -12,12 +12,23 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
 import { ThemedText } from '@/components/themed-text';
 import { Publication } from '@/types/publication';
 import { PublicationService } from '@/services/publicationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { createOrGetConversation } from '@/utils/messagingService';
+
+// Importación condicional de react-native-maps (opcional para desarrollo)
+let MapView: any = null;
+let Marker: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const maps = require('react-native-maps');
+  MapView = maps.default;
+  Marker = maps.Marker;
+} catch {
+  console.log('react-native-maps no disponible');
+}
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -216,38 +227,52 @@ export default function ProductDetailScreen() {
           </View>
 
           {/* Ubicación en el mapa */}
-          {product.location && (product.location.latitude || product.location.coords) && (
+          {product.location && typeof product.location !== 'string' && (product.location.latitude || product.location.coords) && (
             <View style={styles.section}>
               <ThemedText style={styles.sectionTitle}>Ubicación Aproximada</ThemedText>
-              <View style={styles.mapContainer}>
-                <MapView
-                  style={styles.map}
-                  initialRegion={{
-                    latitude: product.location.coords?.latitude || product.location.latitude,
-                    longitude: product.location.coords?.longitude || product.location.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                >
-                  <Marker
-                    coordinate={{
-                      latitude: product.location.coords?.latitude || product.location.latitude,
-                      longitude: product.location.coords?.longitude || product.location.longitude,
-                    }}
-                    title={product.title}
-                  >
-                    <Ionicons name="location" size={32} color="#707cb4ff" />
-                  </Marker>
-                </MapView>
-              </View>
-              <View style={styles.locationInfo}>
-                <Ionicons name="location-outline" size={16} color="#666" />
-                <ThemedText style={styles.locationText}>
-                  {(product.location.coords?.latitude || product.location.latitude).toFixed(4)}, {(product.location.coords?.longitude || product.location.longitude).toFixed(4)}
-                </ThemedText>
-              </View>
+              {MapView ? (
+                <>
+                  <View style={styles.mapContainer}>
+                    <MapView
+                      style={styles.map}
+                      initialRegion={{
+                        latitude: product.location.coords?.latitude || product.location.latitude,
+                        longitude: product.location.coords?.longitude || product.location.longitude,
+                        latitudeDelta: 0.01,
+                        longitudeDelta: 0.01,
+                      }}
+                      scrollEnabled={false}
+                      zoomEnabled={false}
+                    >
+                      <Marker
+                        coordinate={{
+                          latitude: product.location.coords?.latitude || product.location.latitude,
+                          longitude: product.location.coords?.longitude || product.location.longitude,
+                        }}
+                        title={product.title}
+                      >
+                        <Ionicons name="location" size={32} color="#707cb4ff" />
+                      </Marker>
+                    </MapView>
+                  </View>
+                  <View style={styles.locationInfo}>
+                    <Ionicons name="location-outline" size={16} color="#666" />
+                    <ThemedText style={styles.locationText}>
+                      {(product.location.coords?.latitude || product.location.latitude).toFixed(4)}, {(product.location.coords?.longitude || product.location.longitude).toFixed(4)}
+                    </ThemedText>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.locationInfo}>
+                  <Ionicons name="location-outline" size={20} color="#666" />
+                  <ThemedText style={styles.locationText}>
+                    Ubicación: {(product.location.coords?.latitude || product.location.latitude).toFixed(4)}, {(product.location.coords?.longitude || product.location.longitude).toFixed(4)}
+                  </ThemedText>
+                  <ThemedText style={[styles.locationText, { fontSize: 12, color: '#999', marginTop: 4 }]}>
+                    (Mapa no disponible - usar dispositivo físico)
+                  </ThemedText>
+                </View>
+              )}
             </View>
           )}
 
