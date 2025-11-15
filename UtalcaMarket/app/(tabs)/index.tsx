@@ -8,20 +8,17 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  TouchableOpacity,
   Pressable,
-  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Link } from 'expo-router';
+import { Link } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Publication } from '@/types/publication';
-import { PublicationService } from '@/services/publicationService';
 import { Ionicons } from '@expo/vector-icons';
-import { CATEGORIES, Category } from './Categories';
 import { supabase } from '@/utils/supabase';
+import SearchAndFilters, { SearchFilters } from '@/components/SearchAndFilters';
 
 // Constantes de colores
 const HEADER_BG = '#e8f0fe';
@@ -31,19 +28,88 @@ export default function HomeScreen() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | 'Todos'>('Todos');
+  const [filters, setFilters] = useState<SearchFilters>({
+    searchText: '',
+    minPrice: '',
+    maxPrice: '',
+    categories: [],
+    type: 'all',
+    sortBy: 'date_desc',
+  });
 
-  // Función para cargar publicaciones
+  // Estado para controlar cuándo se ejecuta realmente la búsqueda
+  const [activeSearchText, setActiveSearchText] = useState('');
+
+  // Crear una clave estable para las categorías
+  const categoriesKey = React.useMemo(() => filters.categories.join(','), [filters.categories]);
+
+  // Limpiar la búsqueda activa cuando se borra el texto
+  useEffect(() => {
+    if (filters.searchText === '') {
+      setActiveSearchText('');
+    }
+  }, [filters.searchText]);
+
+  // Función para cargar publicaciones con filtros
   const loadPublications = async () => {
     if (!refreshing) {
       setLoading(true);
     }
     try {
-      let query = supabase.from('publications').select('*').order('created_at', { ascending: false });
+      let query = supabase.from('publications').select('*');
 
-      if (selectedCategory !== 'Todos') {
-        query = query.eq('category', selectedCategory);
+      // Aplicar búsqueda por texto (usando activeSearchText)
+      if (activeSearchText.trim()) {
+        query = query.or(`title.ilike.%${activeSearchText}%,description.ilike.%${activeSearchText}%`);
       }
+
+      // Aplicar filtro de precio mínimo
+      if (filters.minPrice) {
+        const minPrice = parseFloat(filters.minPrice);
+        if (!isNaN(minPrice)) {
+          query = query.gte('price', minPrice);
+        }
+      }
+
+      // Aplicar filtro de precio máximo
+      if (filters.maxPrice) {
+        const maxPrice = parseFloat(filters.maxPrice);
+        if (!isNaN(maxPrice)) {
+          query = query.lte('price', maxPrice);
+        }
+      }
+
+      // Aplicar filtro de categorías
+      if (filters.categories.length > 0) {
+        query = query.in('category', filters.categories);
+      }
+
+      // Aplicar filtro de tipo (producto/servicio)
+      if (filters.type !== 'all') {
+        query = query.eq('pub_type', filters.type);
+      }
+
+      // Aplicar ordenamiento
+      switch (filters.sortBy) {
+        case 'date_desc':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'date_asc':
+          query = query.order('created_at', { ascending: true });
+          break;
+        case 'price_asc':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price_desc':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'relevance':
+          // Para relevancia, podríamos usar un score basado en vistas, favoritos, etc.
+          // Por ahora, usar fecha descendente como fallback
+          query = query.order('created_at', { ascending: false });
+          break;
+      }
+
       const { data, error } = await query;
       if (error) throw error;
       setPublications(data as Publication[]);
@@ -51,6 +117,7 @@ export default function HomeScreen() {
       console.error('Error cargando publicaciones:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -58,13 +125,25 @@ export default function HomeScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadPublications();
-    setRefreshing(false);
   };
 
-  // Cargar publicaciones al montar el componente
+  // Función para ejecutar la búsqueda (activar el texto de búsqueda)
+  const executeSearch = () => {
+    setActiveSearchText(filters.searchText);
+  };
+
+  // Cargar publicaciones al montar el componente y cuando cambien los filtros
   useEffect(() => {
     loadPublications();
-  }, [selectedCategory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeSearchText, // Solo recargar cuando se active la búsqueda
+    filters.minPrice,
+    filters.maxPrice,
+    categoriesKey, // Usar la clave estable
+    filters.type,
+    filters.sortBy,
+  ]);
 
   // Mostrar indicador de carga inicial
   if (loading) {
@@ -85,30 +164,14 @@ export default function HomeScreen() {
       {/* Status bar acorde al header */}
       <StatusBar style="dark" backgroundColor="#fff" />
 
-      {/* Barra de Categorías */}
-      <View style={styles.categoryContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-          <TouchableOpacity
-            style={[styles.categoryChip, selectedCategory === 'Todos' && styles.categoryChipSelected]}
-            onPress={() => setSelectedCategory('Todos')}
-          >
-            <ThemedText style={[styles.categoryText, selectedCategory === 'Todos' && styles.categoryTextSelected]}>Todos</ThemedText>
-          </TouchableOpacity>
-          {CATEGORIES.map((category) => (
-            <TouchableOpacity
-              key={category}
-              style={[styles.categoryChip, selectedCategory === category && styles.categoryChipSelected]}
-              onPress={() => setSelectedCategory(category)}
-            >
-              <ThemedText style={[styles.categoryText, selectedCategory === category && styles.categoryTextSelected]}>{category}</ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Componente de búsqueda y filtros */}
+      <SearchAndFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        onSearch={executeSearch}
+      />
 
-
-
-      {/* Lista principal; usamos ListHeaderComponent para hero/encabezado */}
+      {/* Lista principal */}
       <FlatList
         data={publications}
         keyExtractor={(it) => it.id}
@@ -125,11 +188,12 @@ export default function HomeScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
+            <Ionicons name="search-outline" size={64} color="#ccc" />
             <ThemedText style={styles.emptyText}>
-              No hay productos disponibles
+              No se encontraron resultados
             </ThemedText>
             <ThemedText style={styles.emptySubtext}>
-              Sé el primero en publicar
+              Intenta ajustar tus filtros de búsqueda
             </ThemedText>
           </View>
         }
@@ -140,7 +204,6 @@ export default function HomeScreen() {
 }
 
 function Card({ item }: { item: Publication }) {
-  const router = useRouter();
   const [imageLoading, setImageLoading] = React.useState(true);
   const [imageError, setImageError] = React.useState(false);
 
