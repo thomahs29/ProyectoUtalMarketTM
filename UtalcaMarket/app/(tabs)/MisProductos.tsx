@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Link, useFocusEffect } from 'expo-router';
 import { Publication } from '@/types/publication';
 import { PublicationService } from '@/services/publicationService';
+import { authenticateForDelete } from '@/utils/biometricAuth';
 
 export default function MisProductosScreen() {
   const router = useRouter();
@@ -67,6 +68,17 @@ export default function MisProductosScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
+            // Solicitar autenticación biométrica
+            console.log('🔐 Solicitando autenticación biométrica para eliminar...');
+            const isAuthenticated = await authenticateForDelete();
+            
+            if (!isAuthenticated) {
+              console.log('🔐 Autenticación biométrica cancelada o fallida');
+              return;
+            }
+            
+            console.log('🔐 Autenticación biométrica exitosa, procediendo con la eliminación...');
+            
             try {
               await PublicationService.deletePublication(id);
               setProductos(productos.filter(p => p.id !== id));

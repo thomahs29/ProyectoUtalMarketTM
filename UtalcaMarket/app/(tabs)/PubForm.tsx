@@ -16,6 +16,7 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/utils/supabase";
 import { CATEGORIES as CATEGORIAS } from "./Categories";
+import { authenticateForPublish } from "@/utils/biometricAuth";
 
 type PublicationType = "producto" | "servicio" | null;
 
@@ -243,6 +244,17 @@ const PubForm = () => {
       Alert.alert("Error", "El precio es requerido");
       return;
     }
+
+    // Solicitar autenticación biométrica
+    console.log('🔐 Solicitando autenticación biométrica para publicar...');
+    const isAuthenticated = await authenticateForPublish();
+    
+    if (!isAuthenticated) {
+      console.log('🔐 Autenticación biométrica cancelada o fallida');
+      return;
+    }
+    
+    console.log('🔐 Autenticación biométrica exitosa, procediendo con la publicación...');
 
     try {
       // Mostrar indicador de carga
