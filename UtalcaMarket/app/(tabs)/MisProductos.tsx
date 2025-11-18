@@ -1,7 +1,7 @@
 // app/(tabs)/MisProductos.tsx
 import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     Alert,
     FlatList,
@@ -14,7 +14,7 @@ import {
     Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Link } from 'expo-router';
+import { useRouter, Link, useFocusEffect } from 'expo-router';
 import { Publication } from '@/types/publication';
 import { PublicationService } from '@/services/publicationService';
 
@@ -25,7 +25,10 @@ export default function MisProductosScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Función para cargar productos del usuario
-  const loadUserProducts = async () => {
+  const loadUserProducts = useCallback(async (showLoader = false) => {
+    if (showLoader) {
+      setLoading(true);
+    }
     try {
       const data = await PublicationService.getUserPublications();
       setProductos(data);
@@ -33,9 +36,11 @@ export default function MisProductosScreen() {
       console.error('Error cargando productos:', error);
       Alert.alert('Error', 'No se pudieron cargar tus productos');
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   // Función para refrescar
   const onRefresh = async () => {
@@ -44,10 +49,13 @@ export default function MisProductosScreen() {
     setRefreshing(false);
   };
 
-  // Cargar productos al montar el componente
-  useEffect(() => {
-    loadUserProducts();
-  }, []);
+  // Recargar productos cuando la pantalla obtiene el foco
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadUserProducts().finally(() => setLoading(false));
+    }, [loadUserProducts])
+  );
 
   const handleEliminar = async (id: string) => {
     Alert.alert(
@@ -74,8 +82,7 @@ export default function MisProductosScreen() {
   };
 
   const handleEditar = (id: string) => {
-    Alert.alert('Editar Producto', `Editando producto ID: ${id}`);
-    // TODO: Navegar a pantalla de edición
+    router.push(`/EditProduct?id=${id}`);
   };
 
   const renderProducto = ({ item }: { item: Publication }) => {

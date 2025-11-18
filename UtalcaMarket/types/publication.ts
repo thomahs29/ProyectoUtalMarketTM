@@ -27,17 +27,18 @@ export interface CreatePublicationData {
   price: number;
   category: string;
   media_url?: string[];
-  Location?: Location.LocationObject;
+  Location?: Location.LocationObject; // Legacy - mantener para compatibilidad
+  location?: Location.LocationObject | string; // Columna actual en la base de datos
   pub_type?: 'producto' | 'servicio';
 }
 
-export type Category = 'electronics' | 'books' | 'clothing' | 'home' | 'sports' | 'other';
+export type Category = 'Alimentos' | 'Arriendos' | 'Transporte' | 'Servicios' | 'Apuntes' | 'Otros';
 
 export const CATEGORIES: { value: Category; label: string }[] = [
-  { value: 'electronics', label: 'Electrónicos' },
-  { value: 'books', label: 'Libros' },
-  { value: 'clothing', label: 'Ropa' },
-  { value: 'home', label: 'Hogar' },
-  { value: 'sports', label: 'Deportes' },
-  { value: 'other', label: 'Otros' },
+  { value: 'Alimentos', label: 'Alimentos' },
+  { value: 'Arriendos', label: 'Arriendos' },
+  { value: 'Transporte', label: 'Transporte' },
+  { value: 'Servicios', label: 'Servicios' },
+  { value: 'Apuntes', label: 'Apuntes' },
+  { value: 'Otros', label: 'Otros' },
 ];
