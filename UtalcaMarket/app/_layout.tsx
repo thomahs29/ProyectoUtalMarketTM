@@ -21,6 +21,7 @@ function RootLayoutContent() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="ProductDetail" options={{ headerShown: false }} />
+        <Stack.Screen name="EditProduct" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
