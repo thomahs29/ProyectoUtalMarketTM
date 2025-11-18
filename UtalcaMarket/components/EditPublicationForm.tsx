@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
+import { authenticateForEdit } from '@/utils/biometricAuth';
 
 interface EditPublicationFormProps {
   publication: Publication;
@@ -117,6 +118,17 @@ const EditPublicationForm: React.FC<EditPublicationFormProps> = ({
       Alert.alert('Error', 'Debes estar autenticado para editar una publicación');
       return;
     }
+
+    // Solicitar autenticación biométrica
+    console.log('🔐 Solicitando autenticación biométrica para editar...');
+    const isAuthenticated = await authenticateForEdit();
+    
+    if (!isAuthenticated) {
+      console.log('🔐 Autenticación biométrica cancelada o fallida');
+      return;
+    }
+    
+    console.log('🔐 Autenticación biométrica exitosa, procediendo con la edición...');
 
     setLoading(true);
     
