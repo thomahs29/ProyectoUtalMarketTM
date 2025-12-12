@@ -23,13 +23,6 @@ const LoginScreen = () => {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Si el usuario ya está autenticado, redirigir automáticamente
-  React.useEffect(() => {
-    if (user) {
-      router.replace('/publications');
-    }
-  }, [user, router]);
-
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Por favor completa todos los campos');
@@ -47,8 +40,7 @@ const LoginScreen = () => {
 
       if (data.user) {
         console.log('Login exitoso:', data.user.email, 'UUID:', data.user.id);
-        Alert.alert('Éxito', `Has iniciado sesión como ${data.user.email}`);
-        // La navegación se maneja automáticamente por el AuthRedirect
+        // AuthRedirect se encargará de la navegación automáticamente
       }
     } catch (error: any) {
       Alert.alert('Error de inicio de sesión', error.message || 'No pudimos iniciar sesión');

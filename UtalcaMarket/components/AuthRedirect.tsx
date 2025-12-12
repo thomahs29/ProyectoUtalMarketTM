@@ -1,30 +1,48 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSegments } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 const AuthRedirect: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (loading) return; // No hacer nada mientras carga
+    if (loading) return;
 
-    const currentPath = segments.join('/');
-    // El usuario puede estar en la pantalla de Login o Registro sin estar autenticado.
-    const isAuthRoute = currentPath.includes('LoginScreen') || currentPath.includes('RegisterScreen');
+    const inTabsGroup = segments[0] === '(tabs)';
+    const currentScreen = segments[1];
 
-    if (user && isAuthRoute) {
-      // Usuario autenticado pero en login - redirigir a tabs
-      router.replace('/(tabs)');
-    } else if (!user && !isAuthRoute && segments.length > 0) {
-      // Usuario no autenticado y en una ruta protegida - redirigir a login
-      router.replace('/(tabs)/LoginScreen');
+    console.log('AuthRedirect:', { segments, currentScreen, user: !!user });
+
+    const isAuthRoute = currentScreen === 'LoginScreen' || currentScreen === 'RegisterScreen';
+
+    // Usuario autenticado en pantalla de login/register -> redirigir a home
+    if (user && isAuthRoute && !hasRedirected.current) {
+      console.log('Usuario autenticado en login, redirigiendo a home...');
+      hasRedirected.current = true;
+      // Usar ruta relativa simple
+      setTimeout(() => {
+        router.replace('/home');
+      }, 100);
+    }
+    // Usuario no autenticado en pantalla protegida -> redirigir a login
+    else if (!user && inTabsGroup && !isAuthRoute && !hasRedirected.current) {
+      console.log('Redirigiendo a login...');
+      hasRedirected.current = true;
+      // Usar ruta relativa simple
+      setTimeout(() => {
+        router.replace('/LoginScreen');
+      }, 100);
+    }
+    // Resetear flag si el estado cambió apropiadamente
+    else if ((user && !isAuthRoute) || (!user && isAuthRoute)) {
+      hasRedirected.current = false;
     }
   }, [user, loading, segments, router]);
 
-  // Mostrar loading mientras se determina el estado de auth
   if (loading) {
     return (
       <View style={styles.loadingContainer}>

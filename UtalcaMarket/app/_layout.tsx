@@ -5,20 +5,17 @@ import 'react-native-reanimated';
 
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import React from 'react';
 
-export const unstable_settings = {
-  initialRouteName: '(tabs)',
-};
+
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
-  useProtectedRoute();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="ProductDetail" options={{ headerShown: false }} />
         <Stack.Screen name="EditProduct" options={{ headerShown: false }} />
