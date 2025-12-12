@@ -191,6 +191,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 3,
     elevation: 2,
+    color: '#22223b',
   },
   showPwdBtn: {
     alignSelf: 'flex-end',
