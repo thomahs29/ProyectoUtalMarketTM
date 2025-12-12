@@ -1004,9 +1004,6 @@ export default function MessagesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Mensajes</Text>
-        <TouchableOpacity>
-          <MaterialIcons name="add-circle-outline" size={28} color="#333" />
-        </TouchableOpacity>
       </View>
 
       {/* Chats List */}
