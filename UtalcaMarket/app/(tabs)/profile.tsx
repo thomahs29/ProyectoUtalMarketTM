@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProfileService } from '@/services/profileService';
 import { UserProfile } from '@/types/profile';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,6 +20,7 @@ import {
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -150,6 +152,8 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     try {
       await signOut();
+      // Navegar a login después del logout con ruta relativa
+      router.replace('LoginScreen');
     } catch (error: any) {
       Alert.alert('Error', 'No se pudo cerrar sesión: ' + error.message);
     }

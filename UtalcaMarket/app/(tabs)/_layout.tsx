@@ -60,6 +60,8 @@ export default function TabLayout() {
     setIsDrawerOpen(false);
     try {
       await signOut();
+      // Redirigir explícitamente al login
+      router.replace('LoginScreen');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
@@ -73,9 +75,9 @@ export default function TabLayout() {
           <TouchableOpacity style={styles.menuButton} onPress={toggleDrawer}>
             <IconSymbol name={"line.horizontal.3" as any} size={24} color="#1F2937" />
           </TouchableOpacity>
-          
+
           <Text style={styles.headerTitle}>UtalcaMarket</Text>
-          
+
           <View style={styles.spacer} />
         </View>
 
@@ -87,22 +89,22 @@ export default function TabLayout() {
           onRequestClose={toggleDrawer}
         >
           <View style={styles.drawerOverlay}>
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.drawerBackdrop,
                 {
                   opacity: fadeAnim,
                 }
-              ]} 
+              ]}
             >
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{ flex: 1 }}
-                activeOpacity={1} 
+                activeOpacity={1}
                 onPress={toggleDrawer}
               />
             </Animated.View>
-            
-            <Animated.View 
+
+            <Animated.View
               style={[
                 styles.drawerContainer,
                 {
@@ -127,15 +129,15 @@ export default function TabLayout() {
               <ScrollView style={styles.drawerContent}>
                 {user ? (
                   <>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.drawerItem}
-                      onPress={() => navigateTo('/(tabs)')}
+                      onPress={() => navigateTo('/home')}
                     >
                       <IconSymbol name={"house.fill" as any} size={20} color="#6B7280" />
                       <Text style={styles.drawerItemText}>Inicio</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.drawerItem}
                       onPress={() => navigateTo('/(tabs)/PubForm')}
                     >
@@ -143,7 +145,7 @@ export default function TabLayout() {
                       <Text style={styles.drawerItemText}>Agregar Producto</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.drawerItem}
                       onPress={() => navigateTo('/(tabs)/MisProductos')}
                     >
@@ -151,7 +153,7 @@ export default function TabLayout() {
                       <Text style={styles.drawerItemText}>Mis Productos</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.drawerItem}
                       onPress={() => navigateTo('/(tabs)/messages')}
                     >
@@ -159,7 +161,7 @@ export default function TabLayout() {
                       <Text style={styles.drawerItemText}>Mensajes</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.drawerItem}
                       onPress={() => navigateTo('/(tabs)/profile')}
                     >
@@ -169,7 +171,7 @@ export default function TabLayout() {
 
                     <View style={styles.separator} />
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.drawerItem, styles.logoutItem]}
                       onPress={handleLogout}
                     >
@@ -179,7 +181,7 @@ export default function TabLayout() {
                   </>
                 ) : (
                   <>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.drawerItem}
                       onPress={() => navigateTo('/(tabs)/LoginScreen')}
                     >
@@ -187,7 +189,7 @@ export default function TabLayout() {
                       <Text style={styles.drawerItemText}>Iniciar Sesión</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.drawerItem}
                       onPress={() => navigateTo('/(tabs)/RegisterScreen')}
                     >
@@ -211,13 +213,13 @@ export default function TabLayout() {
           screenOptions={{
             headerShown: false,
           }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="LoginScreen" />
-          <Stack.Screen name="RegisterScreen" />
-          <Stack.Screen name="MisProductos" />
-          <Stack.Screen name="messages" />
-          <Stack.Screen name="profile" />
-          <Stack.Screen name="PubForm" />
+          <Stack.Screen name="home" options={{ headerShown: false }} />
+          <Stack.Screen name="LoginScreen" options={{ headerShown: false }} />
+          <Stack.Screen name="RegisterScreen" options={{ headerShown: false }} />
+          <Stack.Screen name="MisProductos" options={{ headerShown: false }} />
+          <Stack.Screen name="messages" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="PubForm" options={{ headerShown: false }} />
         </Stack>
       </SafeAreaView>
     </AuthRedirect>
