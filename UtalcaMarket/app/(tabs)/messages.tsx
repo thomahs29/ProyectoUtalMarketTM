@@ -720,7 +720,6 @@ export default function MessagesScreen() {
             />
             <Text style={styles.chatHeaderName}>{currentChat.userName}</Text>
           </View>
-          <MaterialIcons name="more-vert" size={24} color="#333" />
         </View>
 
         {/* Messages */}
