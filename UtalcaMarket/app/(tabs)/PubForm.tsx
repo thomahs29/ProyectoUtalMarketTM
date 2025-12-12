@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/utils/supabase";
 import { CATEGORIES as CATEGORIAS } from "./Categories";
 import { authenticateForPublish } from "@/utils/biometricAuth";
+import { useRouter } from "expo-router";
 
 type PublicationType = "producto" | "servicio" | null;
 
@@ -43,6 +44,7 @@ const VideoPreview = ({ uri }: { uri: string }) => {
 };
 
 const PubForm = () => {
+  const router = useRouter();
   const [nombre, setNombre] = useState("");
   const [tipo, setTipo] = useState<PublicationType>(null);
   const [categoria, setCategoria] = useState("");
@@ -153,7 +155,7 @@ const PubForm = () => {
 
     // Obtener el usuario y su token de sesión
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session) {
       throw new Error("Usuario no autenticado");
     }
@@ -166,7 +168,7 @@ const PubForm = () => {
 
         // Crear FormData para subir el archivo
         const formData = new FormData();
-        
+
         // Generar nombre único para el archivo
         const fileExt = archivo.type === 'video' ? 'mp4' : 'jpg';
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -186,7 +188,7 @@ const PubForm = () => {
 
         // Subir a Supabase Storage usando fetch directo con el token de sesión
         const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/publications/${filePath}`;
-        
+
         const response = await fetch(uploadUrl, {
           method: 'POST',
           headers: {
@@ -248,12 +250,12 @@ const PubForm = () => {
     // Solicitar autenticación biométrica
     console.log('🔐 Solicitando autenticación biométrica para publicar...');
     const isAuthenticated = await authenticateForPublish();
-    
+
     if (!isAuthenticated) {
       console.log('🔐 Autenticación biométrica cancelada o fallida');
       return;
     }
-    
+
     console.log('🔐 Autenticación biométrica exitosa, procediendo con la publicación...');
 
     try {
@@ -265,7 +267,7 @@ const PubForm = () => {
 
       // Obtener el user_id del usuario autenticado
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         Alert.alert("Error", "Debes iniciar sesión para crear una publicación");
         return;
@@ -287,7 +289,7 @@ const PubForm = () => {
       };
 
       console.log("Publicación a guardar:", publicacion);
-      
+
       // Guardar en la tabla de publications de Supabase
       const { data, error } = await supabase
         .from('publications')
@@ -300,10 +302,24 @@ const PubForm = () => {
       }
 
       console.log("Publicación guardada:", data);
-      Alert.alert("Éxito", "Publicación creada correctamente");
 
       // Limpiar formulario
       limpiarFormulario();
+
+      // Mostrar alerta de éxito y redirigir al home
+      Alert.alert(
+        "Éxito",
+        "Publicación creada correctamente",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Redirigir al home
+              router.replace('/home');
+            }
+          }
+        ]
+      );
     } catch (error) {
       console.error("Error al crear publicación:", error);
       Alert.alert("Error", "No se pudo crear la publicación. Verifica tu conexión e intenta de nuevo.");
@@ -429,7 +445,7 @@ const PubForm = () => {
         {/* Imágenes y Videos */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Imágenes y Videos</Text>
-          
+
           <View style={styles.mediaButtonsContainer}>
             <TouchableOpacity
               style={[styles.mediaButton, styles.cameraButton]}
@@ -487,8 +503,8 @@ const PubForm = () => {
         </View>
 
         {/* Botón Enviar */}
-        <TouchableOpacity 
-          style={[styles.submitButton, subiendo && styles.submitButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.submitButton, subiendo && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={subiendo}
         >
