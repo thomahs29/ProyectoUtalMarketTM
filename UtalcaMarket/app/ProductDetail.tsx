@@ -9,7 +9,16 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
+import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  withSpring,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,6 +41,64 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState<string[]>([]);
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+  
+  // Valores animados para zoom y pan
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const focalX = useSharedValue(0);
+  const focalY = useSharedValue(0);
+
+  // Estilos animados
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
+      ],
+    };
+  });
+
+  // Reset zoom cuando se cierra el modal
+  const resetZoom = () => {
+    scale.value = withTiming(1);
+    savedScale.value = 1;
+    translateX.value = withTiming(0);
+    translateY.value = withTiming(0);
+  };
+
+  const closeModal = () => {
+    resetZoom();
+    setZoomedImageUrl(null);
+  };
+
+  // Gestos con la nueva API
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = Math.max(1, Math.min(savedScale.value * e.scale, 5));
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value;
+      if (scale.value < 1.1) {
+        scale.value = withSpring(1);
+        savedScale.value = 1;
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+      }
+    });
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (scale.value > 1) {
+        translateX.value = e.translationX;
+        translateY.value = e.translationY;
+      }
+    });
+
+  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
   const loadProduct = React.useCallback(async () => {
     try {
@@ -169,12 +236,17 @@ export default function ProductDetailScreen() {
               }}
             >
               {images.map((imageUrl, index) => (
-                <Image
+                <TouchableOpacity
                   key={index}
-                  source={{ uri: imageUrl }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
+                  onPress={() => setZoomedImageUrl(imageUrl)}
+                  activeOpacity={0.9}
+                >
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
               ))}
             </ScrollView>
             
@@ -284,6 +356,36 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Modal de zoom de imagen */}
+      <Modal
+        visible={zoomedImageUrl !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
+        <GestureHandlerRootView style={styles.modalContainer}>
+          <View style={styles.modalBackdrop}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeModal}
+            >
+              <Ionicons name="close" size={30} color="#fff" />
+            </TouchableOpacity>
+            {zoomedImageUrl && (
+              <GestureDetector gesture={composedGesture}>
+                <Animated.View style={styles.modalContent}>
+                  <Animated.Image
+                    source={{ uri: zoomedImageUrl }}
+                    style={[styles.zoomedImage, animatedStyle]}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
+              </GestureDetector>
+            )}
+          </View>
+        </GestureHandlerRootView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -486,5 +588,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  zoomedImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
 });
