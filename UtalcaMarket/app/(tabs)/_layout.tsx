@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, Modal, Text, ScrollView, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,7 +67,7 @@ export default function TabLayout() {
 
   return (
     <AuthRedirect>
-      <View style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header con botón de menú */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.menuButton} onPress={toggleDrawer}>
@@ -218,7 +219,7 @@ export default function TabLayout() {
           <Stack.Screen name="profile" />
           <Stack.Screen name="PubForm" />
         </Stack>
-      </View>
+      </SafeAreaView>
     </AuthRedirect>
   );
 }

@@ -149,7 +149,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <StatusBar style="dark" backgroundColor="#fff" />
+        <StatusBar style="dark" translucent={false} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#707cb4ff" />
           <ThemedText style={styles.loadingText}>Cargando productos...</ThemedText>
@@ -162,7 +162,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
 
       {/* Status bar acorde al header */}
-      <StatusBar style="dark" backgroundColor="#fff" />
+      <StatusBar style="dark" translucent={false} />
 
       {/* Componente de búsqueda y filtros */}
       <SearchAndFilters

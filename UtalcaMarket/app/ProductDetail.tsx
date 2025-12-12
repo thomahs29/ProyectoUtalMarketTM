@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
@@ -120,27 +122,30 @@ export default function ProductDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer} edges={['top', 'bottom']}>
+        <StatusBar style="dark" translucent={false} />
         <ActivityIndicator size="large" color="#707cb4ff" />
         <ThemedText style={styles.loadingText}>Cargando producto...</ThemedText>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!product) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer} edges={['top', 'bottom']}>
+        <StatusBar style="dark" translucent={false} />
         <Ionicons name="alert-circle-outline" size={64} color="#999" />
         <ThemedText style={styles.errorText}>Producto no encontrado</ThemedText>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ThemedText style={styles.backButtonText}>Volver</ThemedText>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar style="dark" translucent={false} />
       {/* Header con botón de regreso */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
@@ -279,7 +284,7 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
