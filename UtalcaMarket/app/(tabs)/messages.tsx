@@ -14,6 +14,13 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
+import AnimatedReanimated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  withSpring,
+} from 'react-native-reanimated';
 
 interface Message {
   id: string;
@@ -198,6 +205,61 @@ export default function MessagesScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Valores animados para zoom de imagen
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
+  // Estilos animados para zoom
+  const animatedImageStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
+      ],
+    };
+  });
+
+  // Reset zoom cuando se cierra el modal
+  const resetZoom = () => {
+    scale.value = withTiming(1);
+    savedScale.value = 1;
+    translateX.value = withTiming(0);
+    translateY.value = withTiming(0);
+  };
+
+  const closeImageModal = () => {
+    resetZoom();
+    setExpandedImage(null);
+  };
+
+  // Gestos para zoom
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = Math.max(1, Math.min(savedScale.value * e.scale, 5));
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value;
+      if (scale.value < 1.1) {
+        scale.value = withSpring(1);
+        savedScale.value = 1;
+        translateX.value = withSpring(0);
+        translateY.value = withSpring(0);
+      }
+    });
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (scale.value > 1) {
+        translateX.value = e.translationX;
+        translateY.value = e.translationY;
+      }
+    });
+
+  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
   // Inicializar sistema de audio al montar el componente
   useEffect(() => {
@@ -919,27 +981,29 @@ export default function MessagesScreen() {
           visible={!!expandedImage}
           transparent={true}
           animationType="fade"
-          onRequestClose={() => setExpandedImage(null)}
+          onRequestClose={closeImageModal}
         >
-          <TouchableOpacity 
-            style={styles.modalContainer}
-            activeOpacity={1}
-            onPress={() => setExpandedImage(null)}
-          >
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setExpandedImage(null)}
-            >
-              <MaterialIcons name="close" size={30} color="#FFF" />
-            </TouchableOpacity>
-            {expandedImage && (
-              <Image
-                source={{ uri: expandedImage }}
-                style={styles.expandedImage}
-                resizeMode="contain"
-              />
-            )}
-          </TouchableOpacity>
+          <GestureHandlerRootView style={styles.modalContainer}>
+            <View style={styles.modalBackdrop}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={closeImageModal}
+              >
+                <MaterialIcons name="close" size={30} color="#FFF" />
+              </TouchableOpacity>
+              {expandedImage && (
+                <GestureDetector gesture={composedGesture}>
+                  <AnimatedReanimated.View style={styles.modalContent}>
+                    <AnimatedReanimated.Image
+                      source={{ uri: expandedImage }}
+                      style={[styles.expandedImage, animatedImageStyle]}
+                      resizeMode="contain"
+                    />
+                  </AnimatedReanimated.View>
+                </GestureDetector>
+              )}
+            </View>
+          </GestureHandlerRootView>
         </Modal>
 
         {/* Modal para reproducir video */}
@@ -1374,13 +1438,27 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   expandedImage: {
-    width: '90%',
-    height: '90%',
+    width: '100%',
+    height: '100%',
   },
   expandedVideo: {
     width: '90%',
