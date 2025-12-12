@@ -1013,11 +1013,12 @@ export default function MessagesScreen() {
           animationType="fade"
           onRequestClose={() => setExpandedVideo(null)}
         >
-          <TouchableOpacity 
-            style={styles.modalContainer}
-            activeOpacity={1}
-            onPress={() => setExpandedVideo(null)}
-          >
+          <View style={styles.modalContainer}>
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              activeOpacity={1}
+              onPress={() => setExpandedVideo(null)}
+            />
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setExpandedVideo(null)}
@@ -1025,14 +1026,17 @@ export default function MessagesScreen() {
               <MaterialIcons name="close" size={30} color="#FFF" />
             </TouchableOpacity>
             {expandedVideo && (
-              <Video
-                source={{ uri: expandedVideo }}
-                style={styles.expandedVideo}
-                useNativeControls
-                isLooping
-              />
+              <View style={styles.videoContainer}>
+                <Video
+                  source={{ uri: expandedVideo }}
+                  style={styles.expandedVideo}
+                  useNativeControls
+                  isLooping
+                  resizeMode="contain"
+                />
+              </View>
             )}
-          </TouchableOpacity>
+          </View>
         </Modal>
 
         {/* Modal para reproducir audio */}
@@ -1460,9 +1464,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  expandedVideo: {
+  videoContainer: {
     width: '90%',
-    height: '90%',
+    height: '70%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandedVideo: {
+    width: '100%',
+    height: '100%',
   },
   audioPlayerContainer: {
     width: '80%',
