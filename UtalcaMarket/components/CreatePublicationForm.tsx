@@ -13,6 +13,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker } from 'react-native-maps';
 
 interface CreatePublicationFormProps {
   onPublicationCreated?: () => void;
@@ -26,6 +29,8 @@ const CreatePublicationForm: React.FC<CreatePublicationFormProps> = ({ onPublica
     category: 'other' as Category,
   });
   const [loading, setLoading] = useState(false);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
   const { user } = useAuth();
 
   const handleSubmit = async () => {
@@ -87,6 +92,72 @@ const CreatePublicationForm: React.FC<CreatePublicationFormProps> = ({ onPublica
       ...prev,
       [field]: value,
     }));
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      setLoadingLocation(true);
+      console.log('📍 Solicitando permisos de ubicación...');
+      
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log('📍 Estado de permisos:', status);
+      
+      if (status !== 'granted') {
+        Alert.alert('Permiso necesario', 'Se necesita acceso a la ubicación para agregar el mapa');
+        setLoadingLocation(false);
+        return;
+      }
+
+      console.log('📍 Obteniendo ubicación actual...');
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      console.log('📍 Ubicación obtenida:', currentLocation.coords);
+      
+      const newLocation = {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      };
+      
+      setLocation(newLocation);
+      updateField('location', currentLocation);
+      Alert.alert('Éxito', 'Ubicación agregada correctamente');
+    } catch (error) {
+      console.error('❌ Error obteniendo ubicación:', error);
+      Alert.alert('Error', 'No se pudo obtener la ubicación: ' + (error as Error).message);
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
+  const removeLocation = () => {
+    setLocation(null);
+    updateField('location', undefined);
+  };
+
+  const handleMapPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    console.log('📍 Nueva ubicación seleccionada:', { latitude, longitude });
+    
+    const newLocation = { latitude, longitude };
+    setLocation(newLocation);
+    
+    // Crear un objeto Location compatible
+    const locationObj = {
+      coords: {
+        latitude,
+        longitude,
+        altitude: null,
+        accuracy: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      },
+      timestamp: Date.now(),
+    };
+    
+    updateField('location', locationObj);
   };
 
   return (
@@ -157,6 +228,60 @@ const CreatePublicationForm: React.FC<CreatePublicationFormProps> = ({ onPublica
               ))}
             </Picker>
           </View>
+        </View>
+
+        {/* Sección de ubicación */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Ubicación</Text>
+          
+          {location ? (
+            <View>
+              <View style={styles.mapContainer}>
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }}
+                  onPress={handleMapPress}
+                >
+                  <Marker
+                    coordinate={location}
+                    title="Ubicación del producto"
+                    draggable
+                    onDragEnd={handleMapPress}
+                  />
+                </MapView>
+              </View>
+              <Text style={styles.mapHint}>
+                Toca el mapa o arrastra el marcador para cambiar la ubicación
+              </Text>
+              <TouchableOpacity
+                style={styles.removeLocationButton}
+                onPress={removeLocation}
+              >
+                <Ionicons name="trash-outline" size={20} color="#ff4444" />
+                <Text style={styles.removeLocationButtonText}>Eliminar ubicación</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.addLocationButton}
+              onPress={getCurrentLocation}
+              disabled={loadingLocation}
+            >
+              {loadingLocation ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="location" size={20} color="#fff" />
+                  <Text style={styles.addLocationButtonText}>Agregar ubicación actual</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity
@@ -252,6 +377,51 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  map: {
+    flex: 1,
+  },
+  mapHint: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  addLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  addLocationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removeLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  removeLocationButtonText: {
+    color: '#ff4444',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
